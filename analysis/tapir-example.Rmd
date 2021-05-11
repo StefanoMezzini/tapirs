@@ -1,0 +1,116 @@
+---
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, collapse = TRUE, comment = '#',
+                      fig.align = 'center', message = FALSE,
+                      fig.height = 2, fig.asp = 0.5)
+```
+
+5 main steps to the analysis:
+
+1. import data and convert to `telemetry` format, then plot by position and time
+
+```{r, fig.asp=.9}
+library('ctmm') # using the github version (0.6.1)
+library('dplyr')
+library('lubridate')
+library('ggplot2')
+theme_set(theme_bw())
+
+tapir <-
+ read.csv('../data/1_ATLANTICFOREST_11.csv') %>%
+  filter(individual.local.identifier == 'AF_01_JOANA') %>% # use first tapir
+  as.telemetry(timeformat = '%Y-%m-%d %H:%M:%S')
+
+plot(tapir) # default units; no information on errors, so assume DOP = 1
+plot(tapir, units = FALSE) # force SI units
+```
+
+```{r}
+# eastward movement over time
+ggplot(tapir, aes(x, y)) +
+  geom_path(alpha = 0.2) +
+  geom_point(aes(color = decimal_date(timestamp))) +
+  scale_color_viridis_c('Year', breaks = c(1998:2000)) +
+  labs(x = 'x (m)', y = 'y (m)')
+
+# facet plot to see seasonal detail
+ggplot(tapir, aes(x, y)) +
+  facet_wrap(~ year(timestamp)) +
+  geom_point(aes(color = (decimal_date(timestamp) %% 1) * 12)) +
+  scale_color_viridis_c('Month', breaks = c(3, 6, 9)) +
+  labs(x = 'x (m)', y = 'y (m)')
+```
+
+\newpage
+
+2. check for outliers
+
+```{r, fig.width=4, fig.asp=.9}
+diagn <- outlie(tapir) # most red points are not actually unusual
+plot(diagn) # very narrow CIs, heterodskedastic in deviation and speed?
+```
+
+\newpage
+
+3. Variograms
+
+```{r}
+svf <- variogram(tapir) # estimate semi-variance function
+head(warnings(), n = 2)
+plot(svf) # plots 50% max lag by default, > 50% is "usually garbage"
+plot(svf, fraction = 1e-3) # zoom in on the shortest lags
+```
+
+\newpage
+
+4. fit and select movement model
+
+```{r, eval=FALSE, echo=FALSE}
+# run this while in R to save the model but not when compiling to pdf
+variogram.fit(svf, name = 'theta0', fraction = 0.0001)
+saveRDS(fitted.mods, 'fitted.mods.rds')
+```
+
+```{r, eval = FALSE}
+variogram.fit(svf, name = 'theta0', fraction = 0.0001)
+fitted.mods <- ctmm.select(tapir, CTMM = theta0, verbose = TRUE, cores = 0)
+```
+
+```{r, echo = FALSE}
+fitted.mods <- readRDS('fitted.mods.rds')
+```
+
+Negligible difference between OU and OUF models (both anisotropic and isotropic), so choose the simplest model (OU isotropic?).
+
+```{r}
+summary(fitted.mods)
+OUi <- fitted.mods$`OU isotropic` # Ornstein-Uhlenbeck
+```
+
+5. calculate distance and speed estimates 
+
+```{r, fig.asp=.6}
+# plot semivariance function against empirical variogram
+plot(svf, CTMM = OUi, col.CTMM = '#1b9e77', fraction = 0.005)
+plot(svf, CTMM = OUi, col.CTMM = '#1b9e77', fraction = 0.1)
+plot(svf, CTMM = OUi, col.CTMM = '#1b9e77', fraction = 0.5)
+```
+
+\newpage
+
+```{r, fig.height=6, fig.asp=1.25}
+layout(matrix(1:6, ncol = 2))
+for(i in 1:6) plot(svf, CTMM = fitted.mods[[i]], col.CTMM = 'red',
+                   fraction = 2e-4, main = names(fitted.mods)[i])
+for(i in 1:6) plot(svf, CTMM = fitted.mods[[i]], col.CTMM = 'red',
+                   fraction = 0.005, main = names(fitted.mods)[i])
+for(i in 1:6) plot(svf, CTMM = fitted.mods[[i]], col.CTMM = 'red',
+                   fraction = 0.1, main = names(fitted.mods)[i])
+
+# parameter and estimates with CIs
+summary(OUi)
+summary(fitted.mods[[6]])
+```
