@@ -50,8 +50,8 @@ ggplot(joana, aes(x, y)) +
 2. check for outliers
 
 ```{r, fig.width=4, fig.asp=.9}
-diagn <- outlie(joana) # some displacement outliers, one velocity outlier
-plot(diagn, units = FALSE) # very narrow CIs
+diagn <- outlie(joana) # movement is not stationary
+plot(diagn, units = FALSE) # very narrow CIs, nonstationary movement
 ```
 
 \newpage
@@ -62,7 +62,7 @@ plot(diagn, units = FALSE) # very narrow CIs
 svf <- variogram(joana) # estimate semi-variance function
 head(warnings(), n = 2) # some warnings occur occasionally
 plot(svf) # plots 50% max lag by default, > 50% is "usually garbage"
-plot(svf, fraction = 1e-3) # zoom in on the shortest lags
+plot(svf, fraction = 1e-3) # zoom in on the variance at shortest lags
 ```
 
 \newpage
