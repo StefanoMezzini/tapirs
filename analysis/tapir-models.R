@@ -46,8 +46,11 @@ if(FALSE) {
                        CTMM = tapirs$theta0[[i]],
                        verbose = TRUE, # to return all models
                        control = list(method = 'pNewton', cores = NCORES)))
+    tapirs <- mutate(tapirs,
+                     best.model = map2(.x = data, .y = fitted.mods,
+                                       function(x, y)
+                                         ctmm.select(x, y, cores = NCORES)))
   }
-  tapirs$best.model <- list(list('no model'))
   #saveRDS(tapirs, file = 'models/tapirs.rds')
   
   # Five warnings:
@@ -89,13 +92,29 @@ with(tapirs, future_map2(region, name, save.plots,
 dev.off() # make sure all pdf devices are closed
 layout(1)
 
-# select the best model for each tapir by looking at diagnostic files
-
 # estimate speed and home range
 tapirs <-
   mutate(tapirs,
-         speed.est = map(best.model, speed),
-         akde.est = map2(data, best.model, function (x, y) akde(x, CTMM = y)))
+         speed.est = future_map(best.model, function(x) speed(x),
+                                .options = furrr_options(seed = NULL)),
+         akde = future_map2(data, best.model,
+                            function (x, y) akde(x, CTMM = y),
+                            .options = furrr_options(seed = NULL)))
+unique(warnings()) # almost half have fractal movement
 
-plot(est) # 95% quantile of home range distribution with 95% CIs
-plot(joana, add = TRUE) # datapoints
+plot.estimates <- function(ROW) {
+  AKDE <- tapirs[ROW, 'akde'][[1]]
+  DATA <- tapirs[ROW, 'data'][[1]]
+  
+  pdf(paste0('figures/akde/', tapirs[ROW, 'region'], '-', tapirs[ROW, 'name'],
+             '.pdf'), width = 12, height = 6.75)
+  plot(AKDE) # 95% quantile of home range distribution with 95% CIs
+  plot(DATA, add = TRUE) # add datapoints
+  dev.off()
+}
+
+# AKDE plots with data open plots with SumatraPDF, use Ctrl+Shift+Right to move to next file
+with(tapirs, future_map(1:nrow(tapirs), plot.estimates,
+                         .options = furrr_options(seed = NULL)))
+dev.off() # make sure all pdf devices are closed
+layout(1)
