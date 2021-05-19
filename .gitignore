@@ -34,3 +34,7 @@ vignettes/*.pdf
 
 # Shiny token, see https://shiny.rstudio.com/articles/shinyapps.html
 rsconnect/
+
+# tapir example files that are not necessary
+analysis/tapir-example.aux
+analysis/tapir-example.out
