@@ -1,17 +1,12 @@
 library('R.utils') # for withTimeout()
-library('readxl') # for read_xlsx()
-library('ctmm') # using the github version (0.6.1)
-library('dplyr') # for data wrangling
-library('purrr') # for vectorization
-library('tidyr') # for data wrangling
+library('readxl')  # for read_xlsx()
+library('ctmm')    # using the github version (0.6.1)
+library('dplyr')   # for data wrangling
+library('purrr')   # for vectorization
+library('tidyr')   # for data wrangling
 library('ggplot2') # for plotting
 theme_set(theme_bw())
 N <- 74 # number of tapirs
-
-# for remote parallel computation (linux)
-NCORES <- 15
-Sys.setenv(MC_CORES = NCORES) # set max number of cores to NCORES
-Sys.getenv('MC_CORES')        # should return NCORES
 
 # for local parallel computation (windows)
 library('furrr') # for parallel computation
@@ -19,16 +14,14 @@ NCORES <- 4 # number of cores, not number of logical processors!
 plan(multisession, workers = NCORES)
 
 # import data and convert to `telemetry` format, then plot by position and time
-# 0 + 912 + 193 = 1105 initial outliers (see files in tapirs/data)
-# 0 + 0 + 0 = 0 additional outliers (see files in tapirs/data/cleaned)
-atlantica <- read.csv('data/1_ATLANTICFOREST_11.csv') %>% # degraded
+atlantica <- read.csv('data/cleaned/atlantica.csv') %>% # degraded
   as.telemetry(timeformat = '%Y-%m-%d %H:%M', mark.rm = TRUE)
 
-pantanal <- read.csv('data/2_PANTANAL_ERRORDATASET_FINAL.csv') %>% # agriculture
+pantanal <- read.csv('data/cleaned/pantanal.csv') %>% # agriculture
   arrange(individual.local.identifier, timestamp) %>% # to avoid warning
   as.telemetry(timeformat = '%Y-%m-%d %H:%M:%S', mark.rm = TRUE)
 
-cerrado <- read.csv('data/3_CERRADO_ERRORDATASET_FINAL.csv') %>% # reference
+cerrado <- read.csv('data/cleaned/cerrado.csv') %>% # reference
   as.telemetry(timeformat = '%Y-%m-%d %H:%M:%S', mark.rm = TRUE)
 
 # add User Equivalent Range Error (UERE)
@@ -37,7 +30,7 @@ pantanal.uere <- uere.fit(pantanal.calib)
 uere(pantanal) <- pantanal.uere
 
 cerrado.calib <- read.csv('data/CALIBRATION_Cerrado.csv') %>% as.telemetry()
-cerrado.uere <- uere.fit(pantanal.calib)
+cerrado.uere <- uere.fit(cerrado.calib)
 uere(cerrado) <- cerrado.uere
 
 traits <-
@@ -68,6 +61,11 @@ filter(traits, name.short %in% c('SILVIO', 'SOFIA'))
 
 # fit models ####
 if(FALSE) {
+  # for remote parallel computation (linux)
+  NCORES <- 15
+  Sys.setenv(MC_CORES = NCORES) # set max number of cores to NCORES
+  Sys.getenv('MC_CORES')        # should return NCORES
+  
   tapirs <-
     bind_rows(tibble(region = 'atlantica', name = names(atlantica)),
               tibble(region = 'pantanal', name = names(pantanal)),
@@ -80,7 +78,23 @@ if(FALSE) {
     left_join(select(traits, -region, -name), by = 'name.short') %>%
     # no map_***() available for telemetry, variogram, and ctmm objects
     mutate(data = map2(region, name,
-                       function(x, y) get(x)[[y]]),
+                       function(x, y) get(x)[[y]]))
+  
+  # rename data classes to fix error that occurs during fitting
+  for(i in 1:N) {
+    d <- tapirs$data[[i]]
+    if(! is.null(levels(d$class))){
+      levels(d$class)[levels(d$class) == "Succeeded [HDOP] [vertical] [speed]"] <-
+        "Succeeded [speed]"
+      levels(d$class)[levels(d$class) == "QFP [HDOP] [vertical] [NA-speed]"] <-
+        "QFP [NA-speed]"
+      tapirs$data[[i]] <- d
+      rm(d)
+    }
+  }
+  
+  tapirs <-
+    mutate(tapirs,
            calib = region != 'atlantica',
            svf = map(data, variogram),
            theta0 = map(1:N,
@@ -90,11 +104,9 @@ if(FALSE) {
                                                interactive = FALSE)))
   
   # not unsing map() because a single error loses all progress
-  # 23, 24 cause:
-  # Error in if (any(error > 0)) { : missing value where TRUE/FALSE needed
-  tictoc::tic() # ~ 7 minutes/model
+  tictoc::tic() # 4.8 days in total (last few, >= 69, took the longest)
   for(i in 1:N) {
-    tryCatch({ # print errors, but continue running models
+    tryCatch({ # to print errors as warnings and continue fitting models
       tapirs$model[i] <-
         list(ctmm.select(data = tapirs$data[[i]], CTMM = tapirs$theta0[[i]],
                          control = list(method = 'pNewton', cores = NCORES)))
@@ -104,12 +116,11 @@ if(FALSE) {
   tictoc::toc()
   saveRDS(tapirs, file = 'models/tapirs-calibrated.rds')
   
-  # Five warnings:
+  # Nine warnings:
   # In ctmm.fit(data, GUESS, trace = trace2, ...) :
   # pREML failure: indefinite ML Hessian or divergent REML gradient.
-  
 } else {
-  tapirs <- readRDS('models/tapirs.rds')
+  tapirs <- readRDS('models/tapirs-calibrated.rds')
 }
 
 # plot of times
@@ -148,6 +159,7 @@ ggsave('figures/waiting-times-density.png', width = 5, height = 6)
 save.plots <- function(i) {
   r <- tapirs$region[[i]]
   n <- tapirs$name[[i]]
+  fun <- tapirs$svf[[i]]
   model <- tapirs$model[[i]]
   
   pdf(file = paste0('models/diagnostics/', r, '-', n, '.pdf'), width = 16,
@@ -157,10 +169,10 @@ save.plots <- function(i) {
   plot(diagn, units = FALSE) # speed vs distance diagnostic
   
   # plot best model at 3 different zooms
-  # layout(1)
-  # plot(fun, CTMM = model, col.CTMM = 'red', fraction = 5e-4)
-  # plot(fun, CTMM = model, col.CTMM = 'red', fraction = 0.01)
-  # plot(fun, CTMM = model, col.CTMM = 'red', fraction = 0.5)
+  layout(1)
+  plot(fun, CTMM = model, col.CTMM = 'red', fraction = 5e-4)
+  plot(fun, CTMM = model, col.CTMM = 'red', fraction = 0.01)
+  plot(fun, CTMM = model, col.CTMM = 'red', fraction = 0.5)
   dev.off()
   print(i)
 }
@@ -175,25 +187,25 @@ dev.off() # make sure all pdf devices are closed
 # estimate speed and home range
 tapirs <- mutate(tapirs,
                  # missing speeds are returned as m/s while others as km/day
-                 speed.est = future_map(best.model, function(x) list(speed(x)),
+                 speed.est = future_map(model, function(x) list(speed(x)),
                                         .options = furrr_options(seed = NULL)))
-unique(warnings()) # 33 half have fractal movement
+unique(warnings()) # 21 have fractal movement
 
 # withTimeout() cannot be used with map()
-tictoc::tic() # ~ 3 minutes without weights
+tictoc::tic() # ~ 3 minutes without weights, ~ 25 minutes with weights
 for(i in 1:N) {
-  tapirs$akde[[i]] <- akde(data = tapirs$data[[i]],
-                           CTMM = tapirs$best.model[[i]])
-  # withTimeout(akde(data = tapirs$data[[i]],
-  #                  CTMM = tapirs$best.model[[i]],
-  #                  # mata atlantica has VHF data => irregular lags
-  #                  weights = tapirs$region[i] == 'atlantica'),
-  #             substitute = TRUE,
-  #             timeout = 60 * 60 * 4, # warning if t > 4 hours for a single est
-  #             onTimeout = 'warning')
-  if(i %% 5 == 0) cat(i, '\n')
+  tapirs$akde[[i]] <-
+    withTimeout(akde(data = tapirs$data[[i]],
+                     CTMM = tapirs$model[[i]],
+                     # mata atlantica has VHF data => irregular lags
+                     weights = ! tapirs$calib[i]),
+                substitute = TRUE,
+                timeout = 60 * 60 * 4, # warning if t > 4 hours for a single est
+                onTimeout = 'warning')
+  cat(i, '\n')
 }
 tictoc::toc()
+#saveRDS(tapirs, file = 'models/tapirs-calibrated.rds')
 
 plot.estimates <- function(ROW) {
   AKDE <- tapirs[ROW, 'akde'][[1]]
@@ -209,7 +221,7 @@ plot.estimates <- function(ROW) {
 # extract estimates
 tapirs <-
   bind_cols(tapirs,
-            bind_rows(map(tapirs$best.model, # autocorrelation parameters
+            bind_rows(map(tapirs$model, # autocorrelation parameters
                           function(x) {
                             y <- c(tau = x$tau)
                             if(is.null(y)) y <- c(tau.position = NA,
@@ -229,15 +241,8 @@ with(tapirs, future_map(1:N, plot.estimates,
 dev.off() # make sure all pdf devices are closed
 
 # summary plots ####
-tapirs <-
-  mutate(tapirs,
-         name.short = map_chr(name,
-                              function(x) substr(x,
-                                                 gregexpr('_', x)[[1]][2],
-                                                 100)),
-         name.short = gsub('_', '', name.short)) %>%
-  left_join(select(traits, -region, -name), by = 'name.short') %>%
-  mutate(adult = if_else(age %in% c('ADULT', 'ADULT-OLD'), 'Yes', 'No'))
+tapirs <- mutate(tapirs,
+                 adult = if_else(age %in% c('ADULT', 'ADULT-OLD'), 'Yes', 'No'))
 
 # speed estimates (only one speed estimate in mata atlantica)
 s.box <-
@@ -302,6 +307,25 @@ ggsave('figures/adke-df-boxplots-age.png',
        width = 5, height = 4)
 
 # home range comparisons and figures
-?ctmm::meta()
+pdf('figures/akde/all-atlantica.pdf', width = 8, height = 8)
+plot(tapirs$akde[1:11])
+dev.off()
+pdf('figures/akde/all-pantanal.pdf', width = 8, height = 8)
+plot(tapirs$akde[12:57])
+dev.off()
+pdf('figures/akde/all-cerrado.pdf', width = 8, height = 8)
+plot(tapirs$akde[58:74])
+dev.off()
+
+tapirs <- mutate(tapirs,
+                 color = case_when(region == 'atlantica' ~ '#ff8c00',
+                                   region == 'pantanal' ~ '#4477AA',
+                                   region == 'cerrado' ~ '#009900'))
+png('figures/meta-models.png', width = 8, height = 8, units = 'in', res = 300)
+meta(tapirs$model, col = tapirs$color)
+dev.off()
+png('figures/meta-akdes.png', width = 8, height = 8, units = 'in', res = 300)
+meta(tapirs$akde, col = tapirs$color)
+dev.off()
 
 metafor::#package
