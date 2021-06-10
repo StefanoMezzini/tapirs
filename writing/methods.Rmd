@@ -1,0 +1,16 @@
+---
+bibliography: tapirs.bib
+output: bookdown::word_document2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, eval = FALSE)
+```
+
+# Methods
+
+All statistical analysis and plotting were performed using `R` [version 4.0.5, @r_core_team_r_2021] using packages `ctmm` [version 0.6.1, @fleming_ctmm_2021], `ctmmweb` [version 0.2.10, @dong_ctmmweb_2021], `ggplot2` [version , @wickham_ggplot2_2016] `ggmap` [version , @kahle_ggmap_2013]. The `furrr` package [version 0.2.2, @vaughan_furrr_2021] was used for parallel computation on Windows machines. All `R` code can be found in the GitHub repository at https://github.com/StefanoMezzini/tapirs.
+
+Outliers were removed if they appeared to have large measurement errors. Specifically, a point was removed if it was far from the main cluster of data and there were no points near it that indicated that the animal had walked outside its usual range, *or if the animal's estimated speed was unrealistic (none found when I was cleaning the datasets, but many outliers had already been removed)*. User Equivalent Range Error (UERE) was included in the modeling for tapirs in the Cerrado and Pantanal datasets. The best continuous-time movement model for each animal was chosen using the `ctmm.select` function from the `ctmm` package. The models were then used to calculate each animal's average travel speed, home range Autocorrelated Kernel Density Estimate (AKDE), and autocorrelation parameters.
+
+# References
