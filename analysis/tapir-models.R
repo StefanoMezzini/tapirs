@@ -328,4 +328,4 @@ png('figures/meta-akdes.png', width = 8, height = 8, units = 'in', res = 300)
 meta(tapirs$akde, col = tapirs$color)
 dev.off()
 
-metafor::#package
+saveRDS(tapirs, 'models/tapirs-akdes.rds')
