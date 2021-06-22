@@ -8,7 +8,7 @@ library('purrr')     # for functional mapping
 library('move')      # for movement data
 library('ggplot2')   # for plotting
 library('ggmap')     # for maps
-# library('magrittr')
+library('cowplot')   # for overlapping plots & plot grids
 theme_set(theme_bw())
 N <- 74 # number of tapirs
 
@@ -20,21 +20,24 @@ tapirs <- readRDS('models/tapirs-final.rds') %>%
                  SpatialPolygonsDataFrame.UD(akde[[i]],
                                              proj4string = proj[[i]]) %>%
                  spTransform(CRS("+proj=longlat")) %>%
-                               fortify()))
+                 fortify()))
 
 # plot AKDES: https://groups.google.com/g/ctmm-user/c/RlEF60S3mvg/m/NLzqBRWOBgAJ
 # map example: https://methodsblog.com/2021/03/22/mapping-animal-movement-in-r-the-science-and-the-art/
 #              https://github.com/pratikunterwegs/elemove/blob/master/R/04_plot_code.R
 
-# Brazil maps
-sa <- filter(spData::world, continent == 'South America')
+# spatial elements
+sa <- filter(spData::world,
+             grepl('America', continent),
+             ! name_long %in% c('Canada', 'United States', 'Greenland',
+                                'Mexico'))
 #br <- read_state(code_state = 'all', year = 2020) %>% unionSpatialPolygons()
 # amazon <- read_amazon(year = 2012, simplified = FALSE)
 
 # human footprint index
 hfi <- raster('data/hfi-layers/ml_hfi_v1_2019.nc') %>%
   crop(st_bbox(sa)) %>%
-  rasterToPoints(spatial = TRUE) %>%
+  rasterToPoints() %>%
   data.frame() %>%
   fortify() %>%
   rename(hfi = X__xarray_dataarray_variable__)
@@ -78,6 +81,7 @@ group_by(raw, name, region) %>%
 # locator inset map
 inset <-
   ggplot() +
+  # add satellite image of BR to have water as a background # # # # # # # # # #
   geom_raster(aes(x, y, fill = hfi), hfi) +
   geom_sf(data = sa, size = 0.15, color = 'grey70', fill = 'transparent') +
   geom_sf(data = filter(sa, name_long == 'Brazil'), size = 0.4,
@@ -89,17 +93,10 @@ inset <-
              size = 2.5, color = 'grey90', show.legend = FALSE) +
   coord_sf(xlim = c(-90, -30), ylim = c(-35, 11)) +
   scale_shape_manual(values = c('C', 'M', 'P')) +
-  theme_dark() +
-  theme(legend.position = 'top', panel.grid = element_blank()) +
+  theme(legend.position = 'top', panel.grid = element_blank(),
+        panel.background = element_rect(fill = 'cornflowerblue')) +
   scale_fill_viridis_c('Human Footprint Index', option = 'B') +
   labs(x = 'Longitude', y = 'Latitude')
-
-# Mata Atlantica
-ggmap(atl) +
-  geom_path(aes(longitude, latitude, group = name),
-            alpha = 0.3, filter(raw, region == 'Mata Atlantica')) +
-  geom_point(aes(longitude, latitude), alpha = 0.1,
-             filter(raw, region == 'Mata Atlantica'))
 
 # layer plots ####
 atl.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('AF_', group))
@@ -119,19 +116,20 @@ plot.akde <- function(reg) {
   }
   akdes <- bind_rows(tapirs$akde.df) %>%
     filter(grepl(r, group), grepl('est', group))
+  MAP <- get_map(BOX, zoom = 11)
+  # hfi.cropped <- filter(hfi,
+  #                       x >= BOX['left'], x <= BOX['right'],
+  #                       y >= BOX['bottom'], y <= BOX['top'])
   
-  hfi.cropped <- filter(hfi,
-                        x >= BOX['left'], x <= BOX['right'],
-                        y >= BOX['bottom'], y <= BOX['top'])
-  
-  ggplot() +
-    geom_raster(aes(x, y, fill = hfi), hfi.cropped) +
-    geom_polygon(aes(x = long, y = lat, group = group), fill = 'transparent',
-                 alpha = 0.15, color = 'white', akdes) +
+  ggmap(MAP) +
+    # geom_raster(aes(x, y, fill = hfi), hfi.cropped) +
+    geom_polygon(aes(x = long, y = lat, group = group), fill = 'grey',
+                 alpha = 0.5, color = 'black', akdes, lwd = 0.15) +
     scale_fill_viridis_c('Human Footprint Index', option = 'B') +
-    scale_x_continuous(expand = c(0, 0)) +
-    scale_y_continuous(expand = c(0, 0)) +
+    # scale_x_continuous(expand = c(0, 0)) +
+    # scale_y_continuous(expand = c(0, 0)) +
     labs(x = 'Longitude', y = 'Latitude') +
+    theme_map() +
     theme(legend.position = 'none',
           panel.background = element_rect('grey'),
           panel.grid = element_line('grey'))
@@ -142,10 +140,13 @@ pan.plt <- plot.akde('Pantanal')
 cer.plt <- plot.akde('Cerrado')
 
 fig1 <-
-  cowplot::plot_grid(inset, atl.plt, pan.plt, cer.plt, ncol = 1,
-                     rel_heights = c(1.3, 1, 1, 1),
-                     labels = c(NA, 'M.', 'P.', 'C.'), label_fontface = 'plain')
-ggsave('figures/map.png', plot = fig1, width = 5, height = 15)
+  plot_grid(inset,
+            plot_grid(pan.plt, cer.plt, atl.plt, nrow = 1, align = 'right',
+                      scale = 0.85, labels = c('P.', 'C.', 'M.'),
+                      label_fontface = 'plain'),
+            ncol = 1, rel_heights = c(0.75, 0.25))
+ggsave('figures/map.png', plot = fig1, width = 8, height = 8)
+beepr::beep()
 
 # regional density plots
 get_map(c(left = -52.5, bottom = -22.7, right = -52.1, top = -22.35),
