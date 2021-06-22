@@ -38,3 +38,6 @@ rsconnect/
 # tapir example files that are not necessary
 analysis/tapir-example.aux
 analysis/tapir-example.out
+
+# large HFI files
+data/hfi-layers/*
