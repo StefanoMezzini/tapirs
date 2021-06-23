@@ -358,29 +358,65 @@ tapirs <-
                      transmute(area.low = low / 1e6,
                                area.est = est / 1e6,
                                area.high = high / 1e6))) # convert m^2 to km^2
+#saveRDS(tapirs, 'models/tapirs-final.rds')
 
 # Figure 2 ####
+# add correct averages for speeds and tau parameters ###########################
 tap <-
   bind_rows(
     tapirs,
     bind_cols(
       name = c('Mata Atlantica', 'Pantanal', 'Cerrado', 'Overall'),
       region.lab = c('Mata Atlantica', 'Pantanal', 'Cerrado', 'Overall'),
-      bind_rows(meta(tapirs$akde[tapirs$region == 'atlantica'],plot=FALSE)[1, ],
-                meta(tapirs$akde[tapirs$region == 'pantanal'], plot=FALSE)[1, ],
-                meta(tapirs$akde[tapirs$region == 'cerrado'], plot=FALSE)[1, ],
-                meta(tapirs$akde, plot = FALSE)[1, ])) %>%
-      rename(area.low = low, area.est = est, area.high = high)) %>%
-  
-  # add average s for speeds and tau parameters ################################
-  
-  mutate(name = factor(name,
-                       levels = c(unique(tapirs$name), 'Mata Atlantica',
-                                  'Pantanal', 'Cerrado', 'Overall')),
-         region.lab = factor(region.lab,
-                             levels = c('Mata Atlantica', 'Pantanal', 'Cerrado',
-                                        'Overall')),
-         average = name %in% c('Mata Atlantica', 'Pantanal', 'Cerrado', 'Overall'))
+      bind_rows(
+        meta(tapirs$akde[tapirs$region == 'atlantica'], plot = FALSE)[1, ],
+        meta(tapirs$akde[tapirs$region == 'pantanal'], plot = FALSE)[1, ],
+        meta(tapirs$akde[tapirs$region == 'cerrado'], plot = FALSE)[1, ],
+        meta(tapirs$akde, plot = FALSE)[1, ]) %>%
+        rename(area.low = low, area.est = est, area.high = high),
+      group_by(tapirs, region) %>%
+        summarize(tau.pos.est = mean(tau.position.est, na.rm = TRUE),
+                  tau.pos.sd = sd(tau.position.est, na.rm = TRUE) / sqrt(n()),
+                  tau.vel.est = mean(tau.velocity.est, na.rm = TRUE),
+                  tau.vel.sd = sd(tau.velocity.est, na.rm = TRUE) / sqrt(n()),
+                  spe.est = mean(speed.est, na.rm = TRUE),
+                  spe.sd = sd(speed.est, na.rm = TRUE) / sqrt(n())) %>%
+        rename(tau.position.est = tau.pos.est,
+               tau.velocity.est = tau.vel.est,
+               speed.est = spe.est) %>%
+        mutate(tau.position.low = tau.position.est - 1.96 * tau.pos.sd,
+               tau.position.high = tau.position.est + 1.96 * tau.pos.sd,
+               tau.velocity.low = tau.velocity.est - 1.96 * tau.vel.sd,
+               tau.velocity.high = tau.velocity.est + 1.96 * tau.vel.sd,
+               speed.low = speed.est - 1.96 * spe.sd,
+               speed.high = speed.est + 1.96 * spe.sd) %>%
+        bind_rows(
+          group_by(tapirs) %>%
+            summarize(tau.pos.est = mean(tau.position.est, na.rm = TRUE),
+                      tau.pos.sd = sd(tau.position.est, na.rm = TRUE)/sqrt(n()),
+                      tau.vel.est = mean(tau.velocity.est, na.rm = TRUE),
+                      tau.vel.sd = sd(tau.velocity.est, na.rm = TRUE)/sqrt(n()),
+                      spe.est = mean(speed.est, na.rm = TRUE),
+                      spe.sd = sd(speed.est, na.rm = TRUE) / sqrt(n())) %>%
+            rename(tau.position.est = tau.pos.est,
+                   tau.velocity.est = tau.vel.est,
+                   speed.est = spe.est) %>%
+            mutate(tau.position.low = tau.position.est - 1.96 * tau.pos.sd,
+                   tau.position.high = tau.position.est + 1.96 * tau.pos.sd,
+                   tau.velocity.low = tau.velocity.est - 1.96 * tau.vel.sd,
+                   tau.velocity.high = tau.velocity.est + 1.96 * tau.vel.sd,
+                   speed.low = speed.est - 1.96 * spe.sd,
+                   speed.high = speed.est + 1.96 * spe.sd) %>%
+            select(-tau.pos.sd, -tau.vel.sd, -spe.sd)) %>%
+        select(-tau.pos.sd, -tau.pos.sd, -tau.vel.sd, -tau.vel.sd))) %>%
+      mutate(
+        name = factor(name,
+                      levels = c(unique(tapirs$name), 'Mata Atlantica',
+                                 'Pantanal', 'Cerrado', 'Overall')),
+        region.lab = factor(region.lab,
+                            levels = c('Mata Atlantica', 'Pantanal', 'Cerrado',
+                                       'Overall')),
+        average = name %in% c('Mata Atlantica','Pantanal','Cerrado','Overall'))
 
 # 2a) meta() of areas
 p.areas <-
@@ -467,4 +503,3 @@ cowplot::plot_grid(p.areas,
                    ncol = 2, byrow = TRUE)
 
 ggsave('figures/meta.png', width = 10, height = 8)
-#saveRDS(tapirs, 'models/tapirs-final.rds')
