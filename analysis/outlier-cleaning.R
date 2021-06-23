@@ -78,7 +78,7 @@ write.csv(new, 'data/cleaned/pantanal.csv', row.names = FALSE)
 rm(out, new)
 
 # Cerrado ####
-# 193 initial outliers, added 
+# 193 initial outliers, added 0
 cer.df <- read.csv('data/cleaned/cerrado.csv')
 cer.tel <- as.telemetry(cer.df, timeformat = '%Y-%m-%d %H:%M:%S',
                         mark.rm = TRUE, keep = c('row', 'Outlier'))
