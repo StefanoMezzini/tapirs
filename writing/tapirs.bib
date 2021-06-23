@@ -1,4 +1,12 @@
 
+@book{wood_generalized_2017,
+	edition = {2},
+	title = {Generalized {Additive} {Models}: {An} {Introduction} with {R}},
+	publisher = {Chapman and Hall/CRC},
+	author = {Wood, S. N.},
+	year = {2017}
+}
+
 @book{r_core_team_r_2021,
 	address = {Vienna, Austria},
 	title = {R: {A} {Language} and {Environment} for {Statistical} {Computing}},
@@ -53,4 +61,89 @@
 	url = {https://CRAN.R-project.org/package=furrr},
 	author = {Vaughan, Davis and Dancho, Matt},
 	year = {2021}
+}
+
+@techreport{fleming_comprehensive_2020,
+	type = {preprint},
+	title = {A comprehensive framework for handling location error in animal tracking data*},
+	url = {http://biorxiv.org/lookup/doi/10.1101/2020.06.12.130195},
+	abstract = {Abstract
+          Animal tracking data are being collected more frequently, in greater detail, and on smaller taxa than ever before. These data hold the promise to increase the relevance of animal movement for understanding ecological processes, but this potential will only be fully realized if their accompanying location error is properly addressed. Historically, coarsely-sampled movement data have proved invaluable for understanding large scale processes (e.g., home range, habitat selection, etc.), but modern fine-scale data promise to unlock far more ecological information. While location error can often be ignored in coarsely sampled data, fine-scale data require much more care, and tools to do this have been lacking. Current approaches to dealing with location error largely fall into two categories—either discarding the least accurate location estimates prior to analysis or simultaneously fitting movement and error parameters in a hidden-state model. Unfortunately, both of these approaches have serious flaws. Here, we provide a general framework to account for location error in the analysis of animal tracking data, so that their potential can be unlocked. We apply our error-model-selection framework to 190 GPS, cellular, and acoustic devices representing 27 models from 14 manufacturers. Collectively, these devices are used to track a wide range of animal species comprising birds, fish, reptiles, and mammals of different sizes and with different behaviors, in urban, suburban, and wild settings. Then, using empirical data on tracked individuals from multiple species, we provide an overview of modern, error-informed movement analyses, including continuous-time path reconstruction, home-range distribution, home-range overlap, speed and distance estimation. Adding to these techniques, we introduce new error-informed estimators for outlier detection and autocorrelation visualization. We furthermore demonstrate how error-informed analyses on calibrated tracking data can be necessary to ensure that estimates are accurate and insensitive to location error, and allow researchers to use all of their data. Because error-induced biases depend on so many factors—sampling schedule, movement characteristics, tracking device, habitat, etc.—differential bias can easily confound biological inference and lead researchers to draw false conclusions.},
+	language = {en},
+	urldate = {2021-06-23},
+	institution = {Ecology},
+	author = {Fleming, C. H. and Drescher-Lehman, J. and Noonan, M. J. and Akre, T. S. B. and Brown, D. J. and Cochrane, M. M. and Dejid, N. and DeNicola, V. and DePerno, C. S. and Dunlop, J. N. and Gould, N. P. and Hollins, J. and Ishii, H. and Kaneko, Y. and Kays, R. and Killen, S. S. and Koeck, B. and Lambertucci, S. A. and LaPoint, S. D. and Medici, E. P. and Meyburg, B.-U. and Miller, T. A. and Moen, R. A. and Mueller, T. and Pfeiffer, T. and Pike, K. N. and Roulin, A. and Safi, K. and Séchaud, R. and Scharf, A. K. and Shephard, J. M. and Stabach, J. A. and Stein, K. and Tonra, C. M. and Yamazaki, K. and Fagan, W. F. and Calabrese, J. M.},
+	month = jun,
+	year = {2020},
+	doi = {10.1101/2020.06.12.130195},
+	file = {Submitted Version:C\:\\Users\\stefa\\Zotero\\storage\\BRKK6V7I\\Fleming et al. - 2020 - A comprehensive framework for handling location er.pdf:application/pdf}
+}
+
+@article{fleming_overcoming_2019,
+	title = {Overcoming the challenge of small effective sample sizes in home‐range estimation},
+	volume = {10},
+	issn = {2041-210X, 2041-210X},
+	url = {https://onlinelibrary.wiley.com/doi/10.1111/2041-210X.13270},
+	doi = {10.1111/2041-210X.13270},
+	language = {en},
+	number = {10},
+	urldate = {2021-06-23},
+	journal = {Methods in Ecology and Evolution},
+	author = {Fleming, Christen H. and Noonan, Michael J. and Medici, Emilia Patricia and Calabrese, Justin M.},
+	editor = {Matthiopoulos, Jason},
+	month = oct,
+	year = {2019},
+	pages = {1679--1689},
+	file = {Accepted Version:C\:\\Users\\stefa\\Zotero\\storage\\DHW4IA5P\\Fleming et al. - 2019 - Overcoming the challenge of small effective sample.pdf:application/pdf}
+}
+
+@article{noonan_scale-insensitive_2019,
+	title = {Scale-insensitive estimation of speed and distance traveled from animal tracking data},
+	volume = {7},
+	issn = {2051-3933},
+	url = {https://movementecologyjournal.biomedcentral.com/articles/10.1186/s40462-019-0177-1},
+	doi = {10.1186/s40462-019-0177-1},
+	abstract = {Abstract
+            
+              Background
+              Speed and distance traveled provide quantifiable links between behavior and energetics, and are among the metrics most routinely estimated from animal tracking data. Researchers typically sum over the straight-line displacements (SLDs) between sampled locations to quantify distance traveled, while speed is estimated by dividing these displacements by time. Problematically, this approach is highly sensitive to the measurement scale, with biases subject to the sampling frequency, the tortuosity of the animal’s movement, and the amount of measurement error. Compounding the issue of scale-sensitivity, SLD estimates do not come equipped with confidence intervals to quantify their uncertainty.
+            
+            
+              Methods
+              To overcome the limitations of SLD estimation, we outline a continuous-time speed and distance (CTSD) estimation method. An inherent property of working in continuous-time is the ability to separate the underlying continuous-time movement process from the discrete-time sampling process, making these models less sensitive to the sampling schedule when estimating parameters. The first step of CTSD is to estimate the device’s error parameters to calibrate the measurement error. Once the errors have been calibrated, model selection techniques are employed to identify the best fit continuous-time movement model for the data. A simulation-based approach is then employed to sample from the distribution of trajectories conditional on the data, from which the mean speed estimate and its confidence intervals can be extracted.
+            
+            
+              Results
+              Using simulated data, we demonstrate how CTSD provides accurate, scale-insensitive estimates with reliable confidence intervals. When applied to empirical GPS data, we found that SLD estimates varied substantially with sampling frequency, whereas CTSD provided relatively consistent estimates, with often dramatic improvements over SLD.
+            
+            
+              Conclusions
+              The methods described in this study allow for the computationally efficient, scale-insensitive estimation of speed and distance traveled, without biases due to the sampling frequency, the tortuosity of the animal’s movement, or the amount of measurement error. In addition to being robust to the sampling schedule, the point estimates come equipped with confidence intervals, permitting formal statistical inference. All the methods developed in this study are now freely available in the  package or the  point-and-click web based graphical user interface.},
+	language = {en},
+	number = {1},
+	urldate = {2021-06-23},
+	journal = {Movement Ecology},
+	author = {Noonan, Michael J. and Fleming, Christen H. and Akre, Thomas S. and Drescher-Lehman, Jonathan and Gurarie, Eliezer and Harrison, Autumn-Lynn and Kays, Roland and Calabrese, Justin M.},
+	month = dec,
+	year = {2019},
+	pages = {35},
+	file = {Full Text:C\:\\Users\\stefa\\Zotero\\storage\\JKLR6F9N\\Noonan et al. - 2019 - Scale-insensitive estimation of speed and distance.pdf:application/pdf}
+}
+
+@article{fleming_rigorous_2015,
+	title = {Rigorous home range estimation with movement data: a new autocorrelated kernel density estimator},
+	volume = {96},
+	issn = {0012-9658},
+	shorttitle = {Rigorous home range estimation with movement data},
+	url = {http://doi.wiley.com/10.1890/14-2010.1},
+	doi = {10.1890/14-2010.1},
+	language = {en},
+	number = {5},
+	urldate = {2021-06-23},
+	journal = {Ecology},
+	author = {Fleming, C. H. and Fagan, W. F. and Mueller, T. and Olson, K. A. and Leimgruber, P. and Calabrese, J. M.},
+	month = may,
+	year = {2015},
+	pages = {1182--1188},
+	file = {Full Text:C\:\\Users\\stefa\\Zotero\\storage\\79T8GGJ2\\Fleming et al. - 2015 - Rigorous home range estimation with movement data.pdf:application/pdf}
 }
