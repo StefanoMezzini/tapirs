@@ -1,4 +1,7 @@
 ---
+title: "Movement ecology of vulnerable lowland tapirs across a gradient of human disturbance"
+author: "MJ Noonan$^1$, S Mezzini$^1$, CH Fleming$^{2,3}$, JM Calabrese$^{4,5,6}$, EP Medici$^{7*}$"
+
 bibliography: tapirs.bib
 output: bookdown::word_document2
 ---
@@ -6,6 +9,62 @@ output: bookdown::word_document2
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, eval = TRUE)
 ```
+
+<br />
+
+
+1 – The Irving K. Barber Faculty of Science, The University of British Columbia, Okanagan Campus, 1177 Research Road, Kelowna, BC Canada V1V 1V7.
+
+2 – University of Maryland College Park, College Park, MD, USA.
+
+3 – Smithsonian Conservation Biology Institute, Front Royal, VA, USA.
+
+4 – Center for Advanced Systems Understanding (CASUS), Görlitz, Germany.
+
+5 – Helmholtz-Zentrum Dresden Rossendorf (HZDR), Dresden, Germany.
+
+6 – Department of Ecological Modelling, Helmholtz Centre for Environmental Research (UFZ), Leipzig, Germany.
+
+7 – Lowland Tapir Conservation Initiative, Instituto de Pesquisas Ecológicas (IPÊ), Rodovia Dom Pedro I, km 47, 12960-000, Nazaré Paulista, São Paulo, Brazil.
+
+<br />
+
+__\*Corresponding Author__: medici@ipe.org.br
+
+<br />
+
+__Running head:__ Lowland tapir space use
+
+
+| <!-- -->                  |   | <!-- -->                   |
+|---------------------------|---|----------------------------|
+|                           |   |                            |
+| Words in the abstract: XX |   | Number of Figures: XX      |
+|                           |   |                            |
+| Words in main text: XX    |   | Number of tables: XX       |
+|                           |   |                            |
+| Number of references: XX  |   | Supplementary material: XX |
+
+<br />
+
+__Statement on human or animal subjects:__ NEED PATI HERE
+
+# Abstract
+
+__Keywords:__
+
+
+# Introduction
+
+While agriculture, urbanisation, and transportation infrastructure are critical to human socio-economic improvement [@Esfahani:2003], the associated habitat transformations represent a major threat to species survival [@Fahrig:1997; @Venter:2006gc;  @Powers:2019]. Of particular concern is the impact of human activities on animal movement and space use [@Allen:2016; @Tucker:2018jc; @Doherty:2021]. Animal movement governs how individuals, populations, and species interact with each other and the environment [@Schick:2008dn] and mediates key ecological processes [@Bauer:2014]. The capacity for individuals to move unhindered across complex landscapes is therefore critical for species survival and ecosystem function. Problematically, human development has been reducing the amount of habitat available to wildlife [@Brooks:2002; @Cardinale:2012; @Hooper:2012]. This has spurred dramatic changes in animal movement behaviour across the globe [@Fahrig:2007fz; @Tucker:2018jc; @Doherty:2021]. The consequences of human induced changes in movement are not insubstantial, and can include lower fitness and survival, altered predator-prey dynamics, reduced seed dispersal, genetic isolation and local extinction [@Fahrig:2007fz; @Dickie:2017; @Cosgrove:2018; @Tucker:2021].
+
+BECAUSE OF THE EFFECTS OF ANTHROPOGENIC CHANGE ON HABITATS, SPECIES ARE EXPECTED TO SHOW SOME ADAPTIVE BEHAVIOUR. Importantly, human disturbance has been shown to have differential effects across species [@Toews:2018; @Doherty:2021], even for closely related taxa occupying the same habitat [@Thatte:2020], and response to human activities are thus largely taxa and context specific [@Doherty:2021]. There are therefore no clear _a priori_ expectations as to how any given species might be expected to respond to human disturbance. For instance, although @Wall:2021 found a tendency for African elephants (_Loxodonta spp._) to have reduced movement in human modified landscapes,  @Morato:2016ioa noted that jaguars (_Panthera onca_) living in regions with high human population densities occupied home ranges that were orders of magnitude larger than those of jaguars living in more pristine habitats.  As human disturbance is only expected to worsen over the next decade it is critical to understand how species respond to human disturbance in order to develop effective conservation strategies.
+
+The capacity for behavioural plasticity in response to human disturbance is especially important for long-lived, K-selected species [@Sih:2011; @Montgomery:2020] that take longer to reach sexual maturity, and have longer interbirth intervals than short-lived species [@deMagalhaes:2009]. 
+
+Here we focus on lowland tapirs (_Tapirus terrestris_).
+
+
 
 # Methods
 
@@ -44,6 +103,7 @@ To test whether environmental modification significantly altered the animals' be
 
 # Results
 
+## Individual variation in movement and space use
 
 *change values to more appropriate estimates; currently using mean +/- 1.96 sd/sqrt(n)*
 
@@ -61,7 +121,17 @@ range(tapirs$speed.est, na.rm = TRUE) # km/day
 knitr::include_graphics('../figures/meta.png')
 ```
 
-HFI had a negative effect on both HR size and average daily speed, but the effect was not significant for HR (p-value = 0.90), nor daily speed (p-value = 0.53). A tapir living in a pristine environment (HFI = 0.004) was estimated to have a home range of 7.79 km$^2$ and an average speed of 13.19 km/day, while a tapir from the most altered habitat (HFI = 0.31) had an estimated home range area of 6.93 km$^2$ and an average speed of 10.43 km/day.
+
+There was no evidence that home ranges sizes differed between sexes (males: XXXkm2, 95% CI: XXX – YYY; females: XXXkm2, 95% CI: XXX – YYY).
+
+
+## Variation in movement across biomes and gradients of human disturbance
+
+The Atlantic Forest, Cerrado, and Pantanal varied substantially in habitat composition, levels of human disturbance, and tapir population densities (PATI, IS THERE A SOURCE TO SUPPORT THIS STATEMENT?). Despite this, we found that lowland tapir movement behaviour and space use were consistent across all three biomes (Fig. \@ref(fig:meta).
+
+
+We also found [no] relationship between home range area and HABITAT LAYER RESULTS (Fig. XXX). Similar trends were observed across all other movement parameters (Fig. XXX).  
+HFI had no significant effect on either lowland tapir home range size (p-value = 0.90; Fig. XXXXa), nor average daily movement speed (p-value = 0.53; Fig. XXXb). A tapir living in a near pristine environment (HFI = 0.004) was estimated to have a home range of 7.79 km$^2$ and an average speed of 13.19 km/day, while a tapir from the most altered habitat we monitored tapirs in (HFI = 0.31) had an estimated home range area of 6.93 km$^2$ and an average speed of 10.43 km/day. [WE'LL NEED CIs ON THESE PREDICTIONS]
 
 ```{r, eval = FALSE, echo = FALSE}
 min(tapirs$hfi.mean)
@@ -76,5 +146,9 @@ predict(m3, newdata = tibble(hfi.mean = c(0.004, 0.305)), type = 'response') %>%
   round(2)
 summary(m3)
 ```
+
+# Discussion
+
+# Acknowledgments 
 
 # References
