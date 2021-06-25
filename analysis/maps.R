@@ -3,14 +3,20 @@ library('geobr')     # for maps of Brazil
 library('ctmm')      # using the github version (0.6.1)
 library('raster')    # to import human footprint index raster
 library('dplyr')     # for data wrangling
+library('tidyr')     # for tibble pivoting functions
 library('lubridate') # makes working with dates smoother
 library('purrr')     # for functional mapping
 library('move')      # for movement data
 library('ggplot2')   # for plotting
 library('ggmap')     # for maps
+library('ggsn')      # for map scalebar and north arrow
 library('cowplot')   # for overlapping plots & plot grids
 theme_set(theme_bw())
 N <- 74 # number of tapirs
+
+# color palette
+pal <- c('#4477AA', '#ff8c00', '#66CCEE', '#009900',
+         '#CCBB44', '#EE6677', '#AA3377', '#BBBBBB')
 
 tapirs <- readRDS('models/tapirs-final.rds') %>%
   mutate(proj = map(data, function(d) CRS(d@info$projection)),
@@ -63,6 +69,14 @@ raw <-
           }) %>%
   mutate(day = date(timestamp))
 
+# extents of each group
+boxes <- group_by(raw, region) %>%
+  summarize(xmin = min(longitude),
+            ymin = min(latitude),
+            xmax = max(longitude),
+            ymax = max(latitude),
+            .groups = 'drop')
+
 # wide temporal range within Mata Atlantica and Pantanal
 group_by(raw, region) %>%
   summarize(min = min(day), max = max(day)) %>%
@@ -86,24 +100,68 @@ inset <-
   geom_sf(data = sa, size = 0.15, color = 'grey70', fill = 'transparent') +
   geom_sf(data = filter(sa, name_long == 'Brazil'), size = 0.4,
           color = 'white', fill = 'transparent') +
-  geom_point(aes(longitude, latitude, shape = region),
+  geom_point(aes(longitude, latitude), size = 2.5, color = 'grey80', pch = 15,
              group_by(raw, region) %>%
                summarize(longitude = median(longitude),
-                         latitude = median(latitude)),
-             size = 2.5, color = 'grey90', show.legend = FALSE) +
+                         latitude = median(latitude))) +
   coord_sf(xlim = c(-90, -30), ylim = c(-35, 11)) +
-  scale_shape_manual(values = c('C', 'M', 'P')) +
+  scale_color_manual('Region', values = c(pal[1:3], 'black')) +
   theme(legend.position = 'top', panel.grid = element_blank(),
-        panel.background = element_rect(fill = 'cornflowerblue')) +
+        panel.background = element_rect(fill = '#99ccff')) +
   scale_fill_viridis_c('Human Footprint Index', option = 'B') +
   labs(x = 'Longitude', y = 'Latitude')
 
-# layer plots ####
+plot.data <- function(reg) {
+  if(reg == 'Mata Atlantica') {
+    r <- 'AF_'
+    BOX <- c(left = -52.6, bottom = -22.7, right = -52, top = -22.3)
+  } else if(reg == 'Pantanal') {
+    r <- 'PA_'
+    BOX <- c(left = -56.0, bottom = -19.45, right = -55.6, top = -19.15)
+  } else if(reg == 'Cerrado'){
+    r <- 'CE_'
+    BOX <- c(left = -54, bottom = -21.85, right = -53.4, top = -21.45)
+  } else {
+    stop('invalid region name')
+  }
+  d <- filter(raw, region == reg)
+  MAP <- get_map(BOX, zoom = 11)
+  scalebar.loc <- 0
+  
+  ggmap(MAP) +
+    geom_point(aes(x = longitude, y = latitude), d, alpha = 0.1,
+               color = 'black', lwd = 0.5) +
+    labs(x = 'Longitude', y = 'Latitude', title = reg) +
+    theme_map() +
+    scalebar(x.min = BOX['left'],
+             x.max = if(reg == 'Pantanal') BOX['right'] - 0.04 else
+               BOX['right'] - 0.05,
+             y.min = BOX['bottom'] + 0.03, y.max = BOX['top'] - 0.03,
+             dist = 10, dist_unit = 'km', transform = TRUE, border.size = 0.01,
+             st.size = 2, location = 'topright', height = -0.05, st.dist = 0.1)+
+    theme(panel.border = element_rect(colour = 'black', fill = 'transparent'))
+}
+plot.data('Mata Atlantica') + theme_bw()
+plot.data('Pantanal') + theme_bw()
+plot.data('Cerrado') + theme_bw()
+
+br.map <-
+  plot_grid(inset,
+            plot_grid(plot.data('Pantanal'), plot.data('Cerrado'),
+                      plot.data('Mata Atlantica'), nrow = 1, align = 'right',
+                      scale = 0.85, label_fontface = 'plain'),
+            ncol = 1, rel_heights = c(0.75, 0.25))
+ggsave('figures/data-map.png', plot = br.map, width = 6.86, height = 8,
+       dpi = 300, bg = 'white')
+beepr::beep()
+
+# home range plots ####
 atl.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('AF_', group))
 pan.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('PA_', group))
 cer.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('CE_', group))
 
 plot.akde <- function(reg) {
+  # use BOXes in `if` statement if using hfi raster
   if(reg == 'Mata Atlantica') {
     r <- 'AF_'
     BOX <- c(left = -52.6, bottom = -22.7, right = -52, top = -22.3)
@@ -114,8 +172,28 @@ plot.akde <- function(reg) {
     r <- 'CE_'
     BOX <- c(left = -54, bottom = -21.85, right = -53.4, top = -21.45)
   }
+  
   akdes <- bind_rows(tapirs$akde.df) %>%
     filter(grepl(r, group), grepl('est', group))
+  
+  # box expansion factor 
+  k <- case_when(reg == 'Pantanal' ~ 0.6,
+                 reg == 'Cerrado' ~ 0.1,
+                 reg == 'Mata Atlantica' ~ 0.5)
+  
+  BOX <- akdes %>%
+    summarize(left = min(long),
+              bottom = min(lat),
+              right = max(long),
+              top = max(lat)) %>%
+    
+    # expand boxes slightly
+    mutate(left = left - k * (right - left),
+           right = right + k * (right - left),
+           bottom = bottom - 0.1 * (top - bottom),
+           top = top + 0.1 * (top - bottom)) %>%
+    unlist()
+  
   MAP <- get_map(BOX, zoom = 11)
   # hfi.cropped <- filter(hfi,
   #                       x >= BOX['left'], x <= BOX['right'],
@@ -123,30 +201,24 @@ plot.akde <- function(reg) {
   
   ggmap(MAP) +
     # geom_raster(aes(x, y, fill = hfi), hfi.cropped) +
-    geom_polygon(aes(x = long, y = lat, group = group), fill = 'grey',
-                 alpha = 0.5, color = 'black', akdes, lwd = 0.15) +
-    scale_fill_viridis_c('Human Footprint Index', option = 'B') +
-    # scale_x_continuous(expand = c(0, 0)) +
-    # scale_y_continuous(expand = c(0, 0)) +
-    labs(x = 'Longitude', y = 'Latitude') +
-    theme_map() +
-    theme(legend.position = 'none',
-          panel.background = element_rect('grey'),
-          panel.grid = element_line('grey'))
+    geom_polygon(aes(x = long, y = lat, fill = group), color = 'black',
+                 alpha = 0.5, akdes, lwd = 0.15) +
+    scale_fill_viridis_d('Human Footprint Index', option = 'B') +
+    labs(x = 'Longitude', y = 'Latitude', title = reg) +
+    scalebar(x.min = BOX['left'],
+             x.max = if(reg == 'Pantanal') BOX['right'] - 0.02 else
+               BOX['right'] - 0.05,
+             y.min = BOX['bottom'] + 0.03, y.max = BOX['top'] - 0.02,
+             dist = 5, dist_unit = 'km', transform = TRUE, border.size = 0.01,
+             st.size = 2, location = 'topright', height = -0.05, st.dist = 0.1)+
+    theme(panel.border = element_rect(colour = 'black', fill = 'transparent'),
+          legend.position = 'none')
 }
 
-atl.plt <- plot.akde('Mata Atlantica')
-pan.plt <- plot.akde('Pantanal')
-cer.plt <- plot.akde('Cerrado')
-
-fig1 <-
-  plot_grid(inset,
-            plot_grid(pan.plt, cer.plt, atl.plt, nrow = 1, align = 'right',
-                      scale = 0.85, labels = c('P.', 'C.', 'M.'),
-                      label_fontface = 'plain'),
-            ncol = 1, rel_heights = c(0.75, 0.25))
-ggsave('figures/map.png', plot = fig1, width = 8, height = 8)
-beepr::beep()
+hr.map <-plot_grid(plot.akde('Mata Atlantica'), plot.akde('Pantanal'),
+                   plot.akde('Cerrado'), ncol = 1)
+ggsave('figures/hr-map.png', plot = hr.map, width = 3.23, height = 6, scale = 2,
+       bg = 'white', dpi = 300)
 
 # regional density plots
 get_map(c(left = -52.5, bottom = -22.7, right = -52.1, top = -22.35),
