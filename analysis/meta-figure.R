@@ -148,6 +148,6 @@ cowplot::plot_grid(p.areas,
                    p.speeds,
                    labels = c('a.', 'b.', 'c.', 'd.'),
                    label_fontface = 'plain',
-                   ncol = 4, byrow = TRUE)
+                   ncol = 2, byrow = TRUE)
 
-ggsave('figures/meta.png', width = 6.86, height = 3, scale = 2.2)
+ggsave('figures/meta.png', width = 6.86, height = 6, scale = 1.75)
