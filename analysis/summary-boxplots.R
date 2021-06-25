@@ -41,7 +41,8 @@ hr.a <- t.box + geom_boxplot(aes(x = adult, y = area.est, color = region.lab)) +
   scale_x_discrete(NULL)
 
 plot_grid(get_legend(spe.s + theme(legend.position = 'top')),
-          plot_grid(spe.s, spe.a, hr.s, hr.a, ncol = 2),
+          plot_grid(spe.s, spe.a, hr.s, hr.a, ncol = 2,
+                    labels = c('a.', 'b.', 'c.', 'd.')),
           ncol = 1, rel_heights = c(0.1, 1))
 
 ggsave('figures/boxplots.png', width = 6.86, height = 4.5, dpi = 300,
