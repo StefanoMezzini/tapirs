@@ -270,84 +270,9 @@ with(tapirs, future_map(1:N, plot.estimates,
 dev.off() # make sure all pdf devices are closed
 
 # summary plots ####
-tapirs <- mutate(tapirs,
-                 adult = if_else(age %in% c('ADULT', 'ADULT-OLD'), 'Yes', 'No'))
-
-# speed estimates (only one speed estimate in mata atlantica)
-s.box <-
-  tapirs %>%
-  dplyr::select(region, name, low, est, high, age, sex, adult) %>%
-  pivot_longer(low:high, names_to = 'parameter') %>%
-  mutate(parameter = factor(parameter, levels = c('low', 'est', 'high')))%>%
-  ggplot() +
-  facet_grid(. ~ parameter) +
-  scale_color_brewer(palette = 6, type = 'qual') +
-  labs(x = NULL, y = 'Speed (km/day)') +
-  theme(legend.position = 'top')
-ggsave('figures/speed-boxplots.png',
-       plot = s.box + geom_boxplot(aes(x = region, y = value)),
-       width = 5, height = 4)
-ggsave('figures/speed-boxplots-sex.png',
-       plot = s.box + geom_boxplot(aes(x = region, y = value, color = sex)),
-       width = 5, height = 4)
-ggsave('figures/speed-boxplots-age.png',
-       plot = s.box + geom_boxplot(aes(x = region, y = value, color = adult)),
-       width = 5, height = 4)
-
-# tau estimates (only one speed estimate in mata atlantica)
-t.box <- tapirs %>%
-  dplyr::select(region, name, tau.position, tau.velocity, sex, adult) %>%
-  pivot_longer(tau.position:tau.velocity, names_to = 'parameter') %>%
-  mutate(parameter = case_when(parameter == 'tau.position' ~ 'Position',
-                               parameter == 'tau.velocity' ~ 'Velocity')) %>%
-  ggplot() +
-  facet_wrap(. ~ parameter, scales = 'free_y') +
-  scale_y_log10() +
-  labs(x = NULL, y = expression(Autocoerrelation~parameter~(tau))) +
-  scale_color_brewer(palette = 6, type = 'qual') +
-  theme(legend.position = 'top')
-ggsave('figures/tau-boxplots.png',
-       plot = t.box + geom_boxplot(aes(x = region, y = value)),
-       width = 5, height = 4)
-ggsave('figures/tau-boxplots-sex.png',
-       plot = t.box + geom_boxplot(aes(x = region, y = value, color = sex)),
-       width = 5, height = 4)
-ggsave('figures/tau-boxplots-age.png',
-       plot = t.box + geom_boxplot(aes(x = region, y = value, color = adult)),
-       width = 5, height = 4)
-
-# home range degrees of freedom
-df.box <- tapirs %>%
-  select(region, name, x.df, y.df, sex, adult) %>%
-  pivot_longer(c(x.df, y.df), names_to = 'parameter') %>%
-  ggplot() +
-  facet_wrap(. ~ parameter, scales = 'free_y') +
-  labs(x = NULL, y = 'AKDE degrees of freedom') +
-  scale_color_brewer(palette = 6, type = 'qual') +
-  theme(legend.position = 'top')
-ggsave('figures/adke-df-boxplots.png',
-       plot = df.box + geom_boxplot(aes(x = region, y = value)),
-       width = 5, height = 4)
-ggsave('figures/adke-df-boxplots-sex.png',
-       plot = df.box + geom_boxplot(aes(x = region, y = value, color = sex)),
-       width = 5, height = 4)
-ggsave('figures/adke-df-boxplots-age.png',
-       plot = df.box + geom_boxplot(aes(x = region, y = value, color = adult)),
-       width = 5, height = 4)
-
-# home range comparisons and figures
-pdf('figures/akde/all-atlantica.pdf', width = 8, height = 8)
-plot(tapirs$akde[1:11])
-dev.off()
-pdf('figures/akde/all-pantanal.pdf', width = 8, height = 8)
-plot(tapirs$akde[12:57])
-dev.off()
-pdf('figures/akde/all-cerrado.pdf', width = 8, height = 8)
-plot(tapirs$akde[58:74])
-dev.off()
-
 tapirs <-
   mutate(tapirs,
+         adult = if_else(age %in% c('ADULT', 'ADULT-OLD'), 'Yes', 'No'),
          region.lab = case_when(region == 'atlantica' ~ 'Mata Atlantica',
                                 region == 'pantanal' ~ 'Pantanal',
                                 region == 'cerrado' ~ 'Cerrado'),
