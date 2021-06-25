@@ -80,7 +80,7 @@ Animals were tracked using VHF tracking (all three regions) and GPS tracking (Pa
 A total of 74 tapirs were tracked starting in July of 1997 until October of 2019, with the majority of the data being in the Pantanal (46), while 17 and 11 were from the Cerrado and Mata Atlântica regions, respectively. 
 
 ```{r map, fig.cap='Location of the tree study sites (Pantanal, Cerrado, Mata Atlântica) over a raster of Human Footprint Index, which is a measure of anthropogenic alteration of an ecosystem.', fig.pos='h'}
-knitr::include_graphics('../figures/map.png')
+knitr::include_graphics('../figures/data-map.png')
 ```
 
 ## Data analysis
@@ -144,7 +144,7 @@ tibble(Adult = c('Yes', 'No'),
          upr = round(exp(fit + 1.96 * se.fit), 2))
 ```
 
-The mean home range size across all monitored tapirs was 5.82 km$^2$ (95% CI: 4.71 - 7.12), ranging between  1 km$^2$ and 29.7 km$^2$ (Fig. \@ref(fig:meta)a). Tapirs had HR crossing times of 0.72 days on average (95% CI: 0.35 - 1.10), ranging from 0.05 to 12.8 days (Fig. \@ref(fig:meta)b), and a mean velocity autocorrelation timescale of 0.44 hours (95% CI: 0.39 - 0.49), ranging from 0.17 to 1.88 hours (Fig. \@ref(fig:meta)c). We estimated that tapirs had mean movement speeds of 11.2 km/day (95% CI: 10.2 - 12.1), ranging from 1.51 to 25.96 km/day (Fig. \@ref(fig:meta)d). There was no evidence that average daily speed differed between sexes (females: 10.5 km/day, 95% CI: 9.19 - 12.0; males: 11.9 km/day; 95% CI: 10.3 - 13.7, $p = 0.22$), and there was little to no evidence of it differing between age groups (adults: 11.8 km/day, 95% CI: 10.6 - 13.2; sub-adults: 9.52 km/day, 95% CI: 7.94 - 11.4; $p = 0.053$).
+The mean home range size across all monitored tapirs was 5.82 km$^2$ (95% CI: 4.71 - 7.12), ranging between  1 km$^2$ and 29.7 km$^2$ (Fig. \@ref(fig:meta)a). Tapirs had HR crossing times of 0.72 days on average (95% CI: 0.35 - 1.10), ranging from 0.05 to 12.8 days (Fig. \@ref(fig:meta)b), and a mean velocity autocorrelation timescale of 0.44 hours (95% CI: 0.39 - 0.49), ranging from 0.17 to 1.88 hours (Fig. \@ref(fig:meta)c). We estimated that tapirs had mean movement speeds of 11.2 km/day (95% CI: 10.2 - 12.1), ranging from 1.51 to 25.96 km/day (Fig. \@ref(fig:meta)d). There was no evidence that average daily speed differed between sexes (females: 10.5 km/day, 95% CI: 9.19 - 12.0; males: 11.9 km/day; 95% CI: 10.3 - 13.7, $p = 0.22$, \@ref(fig:boxplots)a), and there was little to no evidence of it differing between age groups (adults: 11.8 km/day, 95% CI: 10.6 - 13.2; sub-adults: 9.52 km/day, 95% CI: 7.94 - 11.4; $p = 0.053$, Fig.  \@ref(fig:boxplots)b).
 
 ```{r, eval = FALSE, echo = FALSE}
 # see maps.R script
@@ -157,6 +157,10 @@ range(tapirs$speed.est, na.rm = TRUE) # km/day
 
 ```{r meta, fig.cap='Parameter estimates from each tapir\'s movement model (circles) and group means (triangles), with 95% confidence intervals. Individuals with a movement model that does not allow for inferences in movement speed are left blank.', fig.pos='h'}
 knitr::include_graphics('../figures/meta.png')
+```
+
+```{r boxplots, fig.cap='Boxplots of daily average speed (a, b) and estimated home range size (c, d) by sex and age group.'}
+knitr::include_graphics('../figures/boxplots.png')
 ```
 
 ```{r hr-area-regressions, eval=FALSE}
@@ -185,27 +189,39 @@ tibble(Adult = c('Yes', 'No'),
          upr = round(exp(fit + 1.96 * se.fit), 2))
 ```
 
-There was no evidence that home ranges sizes differed between sexes (males: 5.43 km$^2$, 95% CI: 3.84 - 7.68; females: 6.27 km$^2$, 95% CI: 4.64 - 8.48; $p = 0.541$) nor between age groups (adults: 5.47 km$^2$, 95% CI: 4.21 - 7.1; sub-adults: 7.01 km$^2$, 95% CI: 4.63 - 10.6; $p = 0.324$).
+There was no evidence that home ranges sizes differed between sexes (males: 5.43 km$^2$, 95% CI: 3.84 - 7.68; females: 6.27 km$^2$, 95% CI: 4.64 - 8.48; $p = 0.541$, Fig. \@ref(fig:boxplots)c) nor between age groups (adults: 5.47 km$^2$, 95% CI: 4.21 - 7.1; sub-adults: 7.01 km$^2$, 95% CI: 4.63 - 10.6; $p = 0.324$, Fig. \@ref(fig:boxplots)d).
 
 ## Variation in movement across biomes and gradients of human disturbance
 
 The Atlantic Forest, Cerrado, and Pantanal varied substantially in habitat composition, levels of human disturbance, and tapir population densities (*PATI, IS THERE A SOURCE TO SUPPORT THIS STATEMENT?*). Despite this, we found that lowland tapir movement behaviour and space use were consistent across all three biomes (Fig. \@ref(fig:meta).
 
 We also found [no] relationship between home range area and HABITAT LAYER RESULTS (Fig. XXX). Similar trends were observed across all other movement parameters (Fig. XXX).  
-HFI had no significant effect on either lowland tapir home range size (p-value = 0.90; Fig. XXXXa), nor average daily movement speed (p-value = 0.53; Fig. XXXb). A tapir living in a near pristine environment (HFI = 0.004) was estimated to have a home range of 7.79 km$^2$ and an average speed of 13.19 km/day, while a tapir from the most altered habitat we monitored tapirs in (HFI = 0.31) had an estimated home range area of 6.93 km$^2$ and an average speed of 10.43 km/day. [WE'LL NEED CIs ON THESE PREDICTIONS]
+HFI had no significant effect on either lowland tapir home range size (p-value = 0.90; Fig. XXXa), nor average daily movement speed (p-value = 0.53; Fig. XXXb). A tapir living in a near pristine environment (HFI = 0.004) was estimated to have a home range of 7.77 km$^2$ (95% CI: 2.12 - 28.6) and an average speed of 13.19 km/day (95% CI: 7.82 - 22.1), while a tapir from the most altered habitat we monitored (HFI = 0.31) had an estimated home range area of 6.93 km$^2$ (95% CI: 3.36 - 14.3) and an average speed of 10.43 km/day (95% CI: 8.27 - 13.2).
 
 ```{r, eval = FALSE, echo = FALSE}
-min(tapirs$hfi.mean)
-max(tapirs$hfi.mean)
 # see hfi-regressions.R
-# hr size
-predict(m0, newdata = tibble(hfi.mean = c(0.004, 0.305)), type = 'response') %>%
-  round(2)
+MIN <- min(tapirs$hfi.mean) %>% round(3)
+MAX <- max(tapirs$hfi.mean) %>% round(3)
+# estimates
+tibble(hfi.mean = c(MIN, MAX),
+       bind_cols(predict(m0, newdata = tibble(hfi.mean), se.fit = TRUE),
+                 predict(m3, newdata = tibble(hfi.mean), se.fit = TRUE))) %>%
+  transmute(hfi.mean,
+            est.hr = exp(fit...1),
+            low.hr = exp(fit...1 - 1.96 * se.fit...2),
+            high.hr = exp(fit...1 + 1.96 * se.fit...2),
+            est.speed = exp(fit...3),
+            low.speed = exp(fit...3 - 1.96 * se.fit...4),
+            high.speed = exp(fit...3 + 1.96 * se.fit...4))
+
 summary(m0)
-# speed
-predict(m3, newdata = tibble(hfi.mean = c(0.004, 0.305)), type = 'response') %>%
-  round(2)
 summary(m3)
+```
+
+akde figure: (Fig. \@ref(fig:akdes))
+
+```{r akdes, fig.cap='Autocorrelated kernel density estimations of each tapir\'s 95% home range.'}
+knitr::include_graphics('../figures/hr-map.png')
 ```
 
 # Discussion
