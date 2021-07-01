@@ -1,8 +1,14 @@
 library('ctmm')    # using the github version (0.6.1)
 library('dplyr')   # for data wrangling
 library('ggplot2') # for plotting
+library('cowplot') # for plot grids
 theme_set(theme_bw() +
-            theme(panel.grid = element_blank()))
+            theme(text = element_text(size = 14),
+                  panel.grid = element_blank(),
+                  legend.position = 'none',
+                  axis.ticks.y = element_blank(),
+                  # axis.text.y = element_text(angle = 90),
+                  axis.text.y = element_blank()))
 
 # color palette
 pal <- c('#4477AA', '#ff8c00', '#66CCEE', '#009900',
@@ -64,7 +70,9 @@ tap <-
     region.lab = factor(region.lab,
                         levels = c('Mata Atlantica', 'Pantanal', 'Cerrado',
                                    'Overall')),
-    average = name %in% c('Mata Atlantica','Pantanal','Cerrado','Overall'))
+    average = if_else(name %in% c('Mata Atlantica','Pantanal','Cerrado','Overall'),
+                      'Group Mean', 'Individual') %>%
+      factor(levels = c('Individual', 'Group Mean')))
 
 # 2a) meta() of areas
 p.areas <-
@@ -73,13 +81,12 @@ p.areas <-
                    color = region.lab), lwd = 2) +
   geom_point(aes(x = area.est, y = name, shape = average), col = 'black', size = 1.5) +
   geom_point(aes(x = area.est, y = name, shape = average), col = 'white', size = 1) +
-  scale_shape_manual(values = c(19, 17)) +
-  scale_color_manual(values = c(pal[1:3], 'black')) +
+  scale_shape_manual(element_blank(), values = c(19, 17)) +
+  scale_color_manual('Region', values = c(pal[1:3], 'black')) +
   scale_y_discrete(limits = rev,
-                   labels = c('Means', 'Cerrado', 'Pantanal', 'Mata Atlantica'),
+                   labels = c('Means', 'Cerrado', 'Pantanal', 'M. Atlântica'),
                    breaks = c('Mata Atlantica', 'CE_15_KURUKA',
                               'PA_33_GABRIELA', 'AF_14_JAMESBOND')) +
-  theme(legend.position = 'none', axis.ticks.y = element_blank()) +
   labs(x = bquote('Estimated 95% home range area'~(km^2)),
        y = NULL); p.areas
 
@@ -93,13 +100,12 @@ p.tau.pos <-
              col = 'black', size = 1.5) +
   geom_point(aes(x = tau.position.est / (60^2 * 24), y = name, shape = average),
              col = 'white', size = 1) +
-  scale_shape_manual(values = c(19, 17)) +
-  scale_color_manual(values = c(pal[1:3], 'black')) +
+  scale_shape_manual(element_blank(), values = c(19, 17)) +
+  scale_color_manual('Region', values = c(pal[1:3], 'black')) +
   scale_y_discrete(limits = rev,
-                   labels = c('Means', 'Cerrado', 'Pantanal', 'Mata Atlantica'),
+                   labels = c('Means', 'Cerrado', 'Pantanal', 'M. Atlântica'),
                    breaks = c('Mata Atlantica', 'CE_15_KURUKA',
                               'PA_33_GABRIELA', 'AF_14_JAMESBOND')) +
-  theme(legend.position = 'none', axis.ticks.y = element_blank()) +
   labs(x = 'Range crossing time (days)', y = NULL); p.tau.pos
 
 # 2c) velocity autocorrelation timescale
@@ -112,13 +118,12 @@ p.tau.vel <-
              col = 'black', size = 1.5) +
   geom_point(aes(x = tau.velocity.est / 60^2, y = name, shape = average),
              col = 'white', size = 1) +
-  scale_shape_manual(values = c(19, 17)) +
-  scale_color_manual(values = c(pal[1:3], 'black')) +
+  scale_shape_manual(element_blank(), values = c(19, 17)) +
+  scale_color_manual('Region', values = c(pal[1:3], 'black')) +
   scale_y_discrete(limits = rev,
-                   labels = c('Means', 'Cerrado', 'Pantanal', 'Mata Atlantica'),
+                   labels = c('Means', 'Cerrado', 'Pantanal', 'M. Atlântica'),
                    breaks = c('Mata Atlantica', 'CE_15_KURUKA',
                               'PA_33_GABRIELA', 'AF_14_JAMESBOND')) +
-  theme(legend.position = 'none', axis.ticks.y = element_blank()) +
   labs(x = 'Directional persistence timescale (hours)', y = NULL); p.tau.vel
 
 # 2d) mean movement speeds
@@ -131,23 +136,27 @@ p.speeds <-
              size = 1.5, show.legend = FALSE) +
   geom_point(aes(x = speed.est, y = name, shape = average), col = 'white',
              size = 1, show.legend = FALSE) +
-  scale_shape_manual(values = c(19, 17)) +
-  scale_color_manual(values = c(pal[1:3], 'black')) +
+  scale_shape_manual(element_blank(), values = c(19, 17)) +
+  scale_color_manual('Region', values = c(pal[1:3], 'black')) +
   scale_y_discrete(limits = rev,
-                   labels = c('Mata Atlantica', 'Pantanal', 'Cerrado', 'Means'),
+                   labels = c('M. Atlantica', 'Pantanal', 'Cerrado', 'Means'),
+                   # breaks = c('AF_17_ESPERTA', 'PA_33_GABRIELA', 'CE_15_KURUKA',
+                   # 'Mata Atlantica')) +
                    breaks = c('AF_17_ESPERTA', 'PA_33_GABRIELA', 'CE_15_KURUKA',
                               'Mata Atlantica')) +
-  theme(legend.position = 'none',
-        panel.grid.major.y = element_blank(),
-        axis.ticks.y = element_blank()) +
   labs(x = 'Estimated average speed (km/day)', y = NULL); p.speeds
 
-cowplot::plot_grid(p.areas,
-                   p.tau.pos,
-                   p.tau.vel,
-                   p.speeds,
-                   labels = c('a.', 'b.', 'c.', 'd.'),
-                   label_fontface = 'plain',
-                   ncol = 2, byrow = TRUE)
+plot_grid(get_legend(p.areas +
+                       theme(legend.position = 'top') +
+                       guides(shape = guide_legend(order = 1),
+                              col = guide_legend(order = 2))),
+          plot_grid(p.areas,
+                    p.tau.pos,
+                    p.tau.vel,
+                    p.speeds,
+                    labels = c('a.', 'b.', 'c.', 'd.'),
+                    label_fontface = 'plain',
+                    ncol = 2, byrow = TRUE, label_y = 1.04),
+          ncol = 1, rel_heights = c(0.05, 1))
 
-ggsave('figures/meta.png', width = 6.86, height = 6, scale = 1.75)
+ggsave('figures/meta.png', width = 6.86, height = 6, scale = 1.5)

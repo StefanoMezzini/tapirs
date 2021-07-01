@@ -11,7 +11,8 @@ library('ggplot2')   # for plotting
 library('ggmap')     # for maps
 library('ggsn')      # for map scalebar and north arrow
 library('cowplot')   # for overlapping plots & plot grids
-theme_set(theme_bw())
+theme_set(theme_bw() +
+            theme(text = element_text(size = 14)))
 N <- 74 # number of tapirs
 
 # color palette
@@ -60,12 +61,13 @@ raw <-
           function(i) {
             mutate(suppressWarnings(as_tibble(tapirs$data[[i]])),
                    region = tapirs$region[i],
-                   region = case_when(region == 'atlantica' ~ 'Mata Atlantica',
-                                      region == 'pantanal' ~ 'Pantanal',
-                                      region == 'cerrado' ~ 'Cerrado'),
-                   name = tapirs$name.short[i]) %>%
+                   region =  case_when(region == 'atlantica' ~ 'Mata Atlantica',
+                                       region == 'pantanal' ~ 'Pantanal',
+                                       region == 'cerrado' ~ 'Cerrado'),
+                   name = tapirs$name[i],
+                   name.short = tapirs$name.short[i]) %>%
               dplyr::select(timestamp, longitude, latitude, t, x, y, region,
-                            name)
+                            name, name.short)
           }) %>%
   mutate(day = date(timestamp))
 
@@ -96,19 +98,21 @@ group_by(raw, name, region) %>%
 inset <-
   ggplot() +
   # add satellite image of BR to have water as a background # # # # # # # # # #
-  geom_raster(aes(x, y, fill = hfi), hfi) +
-  geom_sf(data = sa, size = 0.15, color = 'grey70', fill = 'transparent') +
+  geom_raster(aes(x, y, fill = hfi), hfi) + # geom_tile() needs too much memory
+  geom_sf(data = sa, size = 0.25, color = 'grey70', fill = 'transparent') +
   geom_sf(data = filter(sa, name_long == 'Brazil'), size = 0.4,
           color = 'white', fill = 'transparent') +
-  geom_point(aes(longitude, latitude), size = 2.5, color = 'grey80', pch = 15,
+  geom_point(aes(longitude, latitude), size = 2.5, color = 'white', pch = 0,
              group_by(raw, region) %>%
                summarize(longitude = median(longitude),
                          latitude = median(latitude))) +
   coord_sf(xlim = c(-90, -30), ylim = c(-35, 11)) +
   scale_color_manual('Region', values = c(pal[1:3], 'black')) +
   theme(legend.position = 'top', panel.grid = element_blank(),
-        panel.background = element_rect(fill = '#99ccff')) +
-  scale_fill_viridis_c('Human Footprint Index', option = 'B') +
+        panel.background = element_rect(fill = 'dodgerblue4'),
+        legend.key.width = unit(0.5, 'in')) +
+  scale_fill_viridis_c('ml-HFI', option = 'B', limits = c(0, 1),
+                       labels = c('0', '0.25', '0.50', '0.75', '1')) +
   labs(x = 'Longitude', y = 'Latitude')
 
 plot.data <- function(reg) {
@@ -129,8 +133,9 @@ plot.data <- function(reg) {
   scalebar.loc <- 0
   
   ggmap(MAP) +
-    geom_point(aes(x = longitude, y = latitude), d, alpha = 0.1,
-               color = 'black', lwd = 0.5) +
+    geom_point(aes(x = longitude, y = latitude, color = name), d, alpha = 0.1,
+               lwd = 0.5, show.legend = FALSE) +
+    scale_color_viridis_d(option = 'B') +
     labs(x = 'Longitude', y = 'Latitude', title = reg) +
     theme_map() +
     scalebar(x.min = BOX['left'],
@@ -215,8 +220,8 @@ plot.akde <- function(reg) {
           legend.position = 'none')
 }
 
-hr.map <-plot_grid(plot.akde('Mata Atlantica'), plot.akde('Pantanal'),
-                   plot.akde('Cerrado'), ncol = 1)
+hr.map <- plot_grid(plot.akde('Mata Atlantica'), plot.akde('Pantanal'),
+                    plot.akde('Cerrado'), ncol = 1)
 ggsave('figures/hr-map.png', plot = hr.map, width = 3.23, height = 6, scale = 2,
        bg = 'white', dpi = 300)
 

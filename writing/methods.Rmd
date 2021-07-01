@@ -79,7 +79,7 @@ Animals were tracked using VHF tracking (all three regions) and GPS tracking (Pa
 
 A total of 74 tapirs were tracked starting in July of 1997 until October of 2019, with the majority of the data being in the Pantanal (46), while 17 and 11 were from the Cerrado and Mata Atlântica regions, respectively. 
 
-```{r map, fig.cap='Location of the tree study sites (Pantanal, Cerrado, Mata Atlântica) over a raster of machine machine-learning-based human footprint index (ml-HFI), an index of human pressure on the landscape that is derived from remotely sensed surface imagery and ranges on a scale between 0 (no human impact), and 1 (high human impact). [THIS IS LOOKING GOOD, BUT THERE ARE A FEW MORE CHANGES TO MAKE. PLEASE ENLARGE THE AXIS LABEL/TITLE TEXT A BIT. CAN YOU MAKE SURE THE COLOURS OF THE TRACKING DATA MATCH THOSE IN THE HR FIG BELOW. ON THE FULL MAP CAN YOU CHANGE FROM FILLED BOXES TO EMPTY BOXES SO WE CAN SEE THE UNDERLYING HFI. ALSO, CAN YOU SWITCH TO A MUCH DARKER BLUE SO THAT I CAN USE WHITE LINES INSTEAD OF BLACK TO CONNECT THE INSETS. LAST, CAN YOU MAKE SURE 0 AND 1 ARE ON THE HFI SCALE BAR, AND CHANGE THE TITLE OF THE SCALE BAR TO ml-HFI]', fig.pos='h'}
+```{r map, fig.cap='Location of the tree study sites (Pantanal, Cerrado, Mata Atlântica) over a raster of machine-learning-based human footprint index (ml-HFI), an index of human pressure on the landscape that is derived from remotely sensed surface imagery and ranges on a scale between 0 (no human impact), and 1 (high human impact).', fig.pos='h'}
 knitr::include_graphics('../figures/hr-map_inset.png')
 ```
 
@@ -159,11 +159,11 @@ select(tap, name, speed.est, speed.high, speed.low, tau.position.est,
 range(tapirs$speed.est, na.rm = TRUE) # km/day
 ```
 
-```{r meta, fig.cap='Parameter estimates from each tapir\'s movement model (circles) and group means (triangles), with 95% confidence intervals. Individuals with a movement model that does not allow for inferences in movement speed are left blank. CAN YOU ENLARGE THE AXIS TEXT HER AS WELL. ALSO, CAN YOU TRY ROTATING THE STUDY SITE LABELS BY 90 DEGREES SO THEY DONT EAT UP AS MUCH SPAPCE', fig.pos='h'}
+```{r meta, fig.cap='Parameter estimates from each tapir\'s movement model (circles) and group means (triangles), with 95% confidence intervals. Individuals with a movement model that does not allow for inferences in movement speed are left blank.', fig.pos='h'}
 knitr::include_graphics('../figures/meta.png')
 ```
 
-```{r boxplots, fig.cap='Boxplots of daily average speed (a, b) and estimated home range size (c, d) by sex and age group. [THE COLOURS NEED TO LINE UP WITH THE PREVIOUS FIGURE. ALSO, CAN YOU CHANGE THIS BLACK LINES AND A CLOLOURED FILL INSTEAD OF COLOURING THE LINES WITH AN EMPTY FILL. LARGER TEXT HERE AS WELL]'}
+```{r boxplots, fig.cap='Boxplots of daily average speed (a, b) and estimated home range size (c, d) by sex and age group.'}
 knitr::include_graphics('../figures/boxplots.png')
 ```
 
@@ -202,6 +202,10 @@ The Atlantic Forest, Cerrado, and Pantanal varied substantially in habitat compo
 We also found [no] relationship between home range area and HABITAT LAYER RESULTS (Fig. XXX). Similar trends were observed across all other movement parameters (Fig. XXX).  
 HFI had no significant effect on either lowland tapir home range size (p-value = 0.90; Fig. XXXa), nor average daily movement speed (p-value = 0.53; Fig. XXXb). A tapir living in a near pristine environment (HFI = 0.004) was estimated to have a home range of 7.77 km$^2$ (95% CI: 2.12 - 28.6) and an average speed of 13.19 km/day (95% CI: 7.82 - 22.1), while a tapir from the most altered habitat we monitored (HFI = 0.31) had an estimated home range area of 6.93 km$^2$ (95% CI: 3.36 - 14.3) and an average speed of 10.43 km/day (95% CI: 8.27 - 13.2).
 
+```{r hfi-reg, fig.cap='Estimated mean effect of machine-learning-based human footprint index (ml-HFI) on the tapirs\' estimated home range area and estimated average daily speed.'}
+knitr::include_graphics('../figures/hfi-regressions.png')
+```
+
 ```{r, eval = FALSE, echo = FALSE}
 # see hfi-regressions.R
 MIN <- min(tapirs$hfi.mean) %>% round(3)
@@ -222,9 +226,9 @@ summary(m0)
 summary(m3)
 ```
 
-akde figure: (Fig. \@ref(fig:akdes))
+***ADD AKDE RESULTS*** (Fig. \@ref(fig:akdes))
 
-```{r akdes, fig.cap='Autocorrelated kernel density estimations of each tapir\'s 95% home range. THESE LOOK GOOD, BUT I THINK WE\'RE GOING TO WANT BETTER UNDERLYING MAPS. WE SHOULD BE ABLE TO USE THE HABITAT LAYER RASTERS AFTER WE GET THOSE. ALSO, SAME THING ABOUT LARGER TEXT ON THE AXES.'}
+```{r akdes, fig.cap='Autocorrelated kernel density estimations of each tapir\'s 95% home range. THESE LOOK GOOD, BUT I THINK WE\'RE GOING TO WANT BETTER UNDERLYING MAPS. WE SHOULD BE ABLE TO USE THE HABITAT LAYER RASTERS AFTER WE GET THOSE.'}
 knitr::include_graphics('../figures/hr-map.png')
 ```
 
