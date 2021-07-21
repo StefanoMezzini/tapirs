@@ -85,7 +85,7 @@ knitr::include_graphics('../figures/hr-map_inset.png')
 
 ## Data analysis
 
-All statistical analysis and plotting were performed using `R` [version 4.0.5, @r_core_team_r_2021] using packages `ctmm` [version 0.6.1, @fleming_ctmm_2021], `mgcv` [version 1.8-36, @wood_generalized_2017], `ggplot2` [version , @wickham_ggplot2_2016] `ggmap` [version , @kahle_ggmap_2013]. The `furrr` package [version 0.2.2, @vaughan_furrr_2021] was used for parallel computation on Windows machines. All `R` code can be found in the GitHub repository at https://github.com/StefanoMezzini/tapirs.
+All statistical analysis and plotting were performed using `R` [version 4.0.5, @r_core_team_r_2021] using packages `ctmm` [version 0.6.1, @fleming_ctmm_2021], `mgcv` [version 1.8-36, @wood_generalized_2017], `ggplot2` [version 3.3.4, @wickham_ggplot2_2016], `ggmap` [version 3.0.0, @kahle_ggmap_2013]. The `furrr` package [version 0.2.2, @vaughan_furrr_2021] was used for parallel computation on Windows machines. All `R` code can be found in the GitHub repository at https://github.com/StefanoMezzini/tapirs.
 
 ### Data calibration and cleaning
 
@@ -105,6 +105,12 @@ To test whether environmental modification significantly altered the animals' be
 machine-learning-based human footprint index (ml-HFI) [@Keys:2021]. The ml-HFI is an index of human pressure on the landscape that is derived from remotely sensed surface imagery and ranges on a scale between 0 (no human impact), and 1 (high human impact). For these models we applied Generalized Linear Models (GLMs) with a Gamma distribution and a log link for the response. The Gamma distribution allows for more accurate significance testing, while the log link scale allows HFI to have a multiplicative effect on the response. The GLMs were fit using the `mgcv` package [@wood_generalized_2017], and Restricted Maximum Likelihood (REML).
 
 # Results
+
+There was no significant difference in the home range estimates between individuals who were monitored using GPS collars, VHF tracking, or a mixture of the two (GPS as the control, p-values: 0.495 for GPS and VHF, 0.739 for VHF only, see Fig. \@ref(fig:vhf-hr)).
+
+```{r vhf-hr, fig.cap='Estimated 95% home range area by tracking method. Tapirs were monitored using GPS collars, Very High Frequency (VHF) tracking, or both.', fig.pos='h'}
+knitr::include_graphics('../figures/vhf-hr-boxplots.png')
+```
 
 ## Individual variation in movement and space use
 
@@ -199,8 +205,8 @@ There was no evidence that home ranges sizes differed between sexes (males: 5.43
 
 The Atlantic Forest, Cerrado, and Pantanal varied substantially in habitat composition, levels of human disturbance, and tapir population densities (*PATI, IS THERE A SOURCE TO SUPPORT THIS STATEMENT?*). Despite this, we found that lowland tapir movement behaviour and space use were consistent across all three biomes (Fig. \@ref(fig:meta).
 
-We also found [no] relationship between home range area and HABITAT LAYER RESULTS (Fig. XXX). Similar trends were observed across all other movement parameters (Fig. XXX).  
-HFI had no significant effect on either lowland tapir home range size (p-value = 0.90; Fig. XXXa), nor average daily movement speed (p-value = 0.53; Fig. XXXb). A tapir living in a near pristine environment (HFI = 0.004) was estimated to have a home range of 7.77 km$^2$ (95% CI: 2.12 - 28.6) and an average speed of 13.19 km/day (95% CI: 7.82 - 22.1), while a tapir from the most altered habitat we monitored (HFI = 0.31) had an estimated home range area of 6.93 km$^2$ (95% CI: 3.36 - 14.3) and an average speed of 10.43 km/day (95% CI: 8.27 - 13.2).
+We also found [no] relationship between home range area and ***HABITAT LAYER RESULTS*** (Fig. XXX). Similar trends were observed across all other movement parameters (Fig. XXX).
+HFI had no significant effect on either lowland tapir home range size (p-value = 0.90; Fig. \@ref(fig:hfi-reg)a), nor average daily movement speed (p-value = 0.53; Fig. \@ref(fig:hfi-reg)b). A tapir living in a near pristine environment (HFI = 0.004) was estimated to have a home range of 7.77 km$^2$ (95% CI: 2.12 - 28.6) and an average speed of 13.19 km/day (95% CI: 7.82 - 22.1), while a tapir from the most altered habitat we monitored (HFI = 0.31) had an estimated home range area of 6.93 km$^2$ (95% CI: 3.36 - 14.3) and an average speed of 10.43 km/day (95% CI: 8.27 - 13.2).
 
 ```{r hfi-reg, fig.cap='Estimated mean effect of machine-learning-based human footprint index (ml-HFI) on the tapirs\' estimated home range area and estimated average daily speed.'}
 knitr::include_graphics('../figures/hfi-regressions.png')
