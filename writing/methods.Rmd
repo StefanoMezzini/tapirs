@@ -119,7 +119,7 @@ We then conditioned off of the selected CTMMs to estimated each animal's 95% hom
 
 We were first interested in understanding how home-range areas and movement metrics differed across the three biomes, as well as between animals of different age and sex. For these comparisons, home range estimates were compared using the meta-analysis methods implemented in the `ctmm` package [@Fleming:2021], whereas other movement metrics were analysed using the meta-regression model implemented in the `R` package `metafor` [@Viechtbauer:2010], which allowed uncertainty in each individual estimate to be propagated into the population level estimate when making comparisons.
 
-To test whether environmental modification significantly altered the animals' behavior, the HR sizes and average daily speeds were regressed against their HR's average machine-learning-based human footprint index (ml-HFI) [@Keys:2021]. The ml-HFI is an index of human pressure on the landscape that is derived from remotely sensed surface imagery and ranges on a scale between 0 (no human impact), and 1 (high human impact). For these models we applied Generalized Linear Models (GLMs) with a Gamma distribution and a log link for the response. The Gamma distribution allows for more accurate significance testing, while the log link scale allows HFI to have a multiplicative effect on the response. The GLMs were fit using the `mgcv` package [@wood_generalized_2017], and Restricted Maximum Likelihood (REML).
+To test whether tapirs responded to different environment types, the HR sizes and average daily speeds were regressed against the proportions of the habitat types in each HR. Similarly, the HR sizes and average daily speeds were regressed against their HR's average machine-learning-based human footprint index (ml-HFI) [@Keys:2021] to test whether environmental modification significantly altered the animals' behavior. The ml-HFI is an index of human pressure on the landscape that is derived from remotely sensed surface imagery and ranges on a scale between 0 (no human impact), and 1 (high human impact). For these models we applied Generalized Additive Models (GAMs) with a Gamma distribution and a log link function for the response. The Gamma distribution allows for more accurate significance testing, while the log link scale allows HFI to have a multiplicative effect on the response. The GAMs were fit using the `mgcv` package [@wood_generalized_2017] and Restricted Maximum Likelihood (REML), and the best model was selected using Akaike’s Information Criterion (AIC).
 
 # Results
 
@@ -220,9 +220,36 @@ There was no evidence that home ranges sizes differed between sexes (males: 5.43
 
 ## Variation in movement across biomes and gradients of human disturbance
 
-The Atlantic Forest, Cerrado, and Pantanal varied substantially in habitat composition, levels of human disturbance, and tapir population densities (NEED TO EXPAND ON THIS AND DECIDE IF THIS KIND OF DESCRIPTION GOES HERE, OR IN EARLIER IN THE INTRO/METHODS). Despite this, we found that lowland tapir movement behaviour and space use were consistent across all three biomes (Fig. \@ref(fig:meta).
+The Atlantic Forest, Cerrado, and Pantanal varied substantially in habitat composition, levels of human disturbance, and tapir population densities (*NEED TO EXPAND ON THIS AND DECIDE IF THIS KIND OF DESCRIPTION GOES HERE, OR IN EARLIER IN THE INTRO/METHODS*). Despite this, we found that lowland tapir movement behaviour and space use were consistent across all three biomes (Fig. \@ref(fig:meta).
 
-We also found [no] relationship between home range area and ***HABITAT LAYER RESULTS*** (Fig. XXX). Similar trends were observed across all other movement parameters (Fig. XXX).
+```{r lu-reg, fig.cap='Estimated mean effect of exposed dirt on the tapirs\' estimated home range area.'}
+knitr::include_graphics('../figures/lu-regression.png')
+
+### model summary:
+# Family: Gamma 
+# Link function: log 
+# 
+# Formula:
+# area.est ~ s(dirt, k = 5)
+# 
+# Parametric coefficients:
+#             Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)  1.68094    0.09319   18.04   <2e-16 ***
+# ---
+# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Approximate significance of smooth terms:
+#           edf Ref.df     F p-value  
+# s(dirt) 2.987  3.493 3.495  0.0228 *
+# ---
+# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# R-sq.(adj) =  0.477   Deviance explained = 28.6%
+# -REML = 193.89  Scale est. = 0.64264   n = 74
+```
+
+We also found that habitat type had little effect on HR area or average animal speed (Fig. lu-reg). The best HR area model only accounted for the effect of areas of exposed dirt (approximate p-value: 0.023, $R^2_{adj}$ = 0.477), while no land use types had a significant effect on an animal's average speed. There was very little difference between the AIC of the full model (312.51, df = 11.41, 8 predictors) and that of the model with not predictors but the intercept term (310.89, df = 2). *should we add an analysis of the starting point of each segment and its speed, so we can account for how quickly an animal would leave a given habitat type? Using only the averages likely decreases significance and hides trends. -- Stefano*
+
 HFI had no significant effect on either lowland tapir home range size (p-value = 0.90; Fig. \@ref(fig:hfi-reg)a), nor average daily movement speed (p-value = 0.53; Fig. \@ref(fig:hfi-reg)b). A tapir living in a near pristine environment (HFI = 0.004) was estimated to have a home range of 7.77 km$^2$ (95% CI: 2.12 - 28.6) and an average speed of 13.19 km/day (95% CI: 7.82 - 22.1), while a tapir from the most altered habitat we monitored (HFI = 0.31) had an estimated home range area of 6.93 km$^2$ (95% CI: 3.36 - 14.3) and an average speed of 10.43 km/day (95% CI: 8.27 - 13.2).
 
 ```{r hfi-reg, fig.cap='Estimated mean effect of machine-learning-based human footprint index (ml-HFI) on the tapirs\' estimated home range area and estimated average daily speed.'}
@@ -249,7 +276,7 @@ summary(m0)
 summary(m3)
 ```
 
-***ADD AKDE RESULTS*** (Fig. \@ref(fig:akdes))
+***ADD AKDE RESULTS?*** (Fig. \@ref(fig:akdes))
 
 ```{r akdes, fig.cap='Autocorrelated kernel density estimations of each tapir\'s 95% home range.'}
 knitr::include_graphics('../figures/hr-map.png')
