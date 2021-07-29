@@ -23,10 +23,10 @@ tap <-
       name = c('Mata Atlantica', 'Pantanal', 'Cerrado', 'Overall'),
       region.lab = c('Mata Atlantica', 'Pantanal', 'Cerrado', 'Overall'),
       bind_rows(
-        meta(tapirs$akde[tapirs$region == 'atlantica'], plot = FALSE)[1, ],
-        meta(tapirs$akde[tapirs$region == 'pantanal'], plot = FALSE)[1, ],
-        meta(tapirs$akde[tapirs$region == 'cerrado'], plot = FALSE)[1, ],
-        meta(tapirs$akde, plot = FALSE)[1, ]) %>%
+        meta(tapirs$model[tapirs$region == 'atlantica'], plot = FALSE)[1, ],
+        meta(tapirs$model[tapirs$region == 'pantanal'], plot = FALSE)[1, ],
+        meta(tapirs$model[tapirs$region == 'cerrado'], plot = FALSE)[1, ],
+        meta(tapirs$model, plot = FALSE)[1, ]) %>%
         rename(area.low = low, area.est = est, area.high = high),
       group_by(tapirs, region) %>%
         summarize(tau.pos.est = mean(tau.position.est, na.rm = TRUE),
