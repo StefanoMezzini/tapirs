@@ -7,6 +7,7 @@ library('purrr')      # for functional mapping
 library('ggplot2')    # for plotting
 library('cowplot')    # for plot grids
 library('mgcv')       # for fitting GAMs
+library('gratia')     # for GAM plots
 theme_set(theme_bw())
 N <- 74 # number of tapirs
 
@@ -14,7 +15,8 @@ N <- 74 # number of tapirs
 pal <- c('#4477AA', '#ff8c00', '#66CCEE', '#009900',
          '#CCBB44', '#EE6677', '#AA3377', '#BBBBBB')
 
-tapirs <- readRDS('models/tapirs-final.rds') # tapir data
+tapirs <- readRDS('models/tapirs-final.rds') %>% # tapir data
+  mutate(tau.velocity.est = tau.velocity.est / 60 / 60) # from seconds to hours
 sa <- filter(spData::world, continent == 'South America') # south america layer
 
 # hfi regressions ####
@@ -82,12 +84,12 @@ AIC(m0, m1, m2)
 gratia::draw(m2)
 
 # hfi on average speed ####
-m3 <- gam(speed.est ~ hfi.mean,
+m3 <- gam(speed.est ~ s(hfi.mean), # restricted to be linear by REML
           family = Gamma('log'),
           data = tapirs,
           method = 'REML')
 summary(m3)
-plot(m3, all.terms = TRUE, trans = exp) # on multiplicative scale
+draw(m3)
 
 pred3 <-
   bind_cols(select(pred0, hfi.mean),
@@ -122,11 +124,24 @@ gam(speed.est ~ hfi.mean,
     method = 'REML') %>%
   summary()
 
-# final regression plot
-plot_grid(get_legend(hfi.hr),
-          plot_grid(hfi.hr + theme(legend.position = 'none'),
-                    hfi.speed + theme(legend.position = 'none'),
-                    labels = c('a.', 'b.')),
-          ncol = 1, rel_heights = c(0.05, 1))
-ggsave('figures/hfi-regressions.png', height = 3, width = 6.86, scale = 1.3,
-       bg = 'white')
+# hfi on tau_v ####
+m4 <- gam(tau.velocity.est ~ hfi.mean, # restricted to be linear by REML
+          family = Gamma('log'),
+          data = tapirs,
+          method = 'REML')
+summary(m4)
+
+# without outlier estimate
+m4 <- gam(tau.velocity.est ~ hfi.mean,
+          family = Gamma('log'),
+          data = filter(tapirs, tau.velocity.est < 1.5),
+          method = 'REML')
+summary(m4)
+
+pred4 <-
+  bind_cols(tibble(hfi.mean = c(0.004, 0.31)),
+            predict(m4, newdata = tibble(hfi.mean = c(0.004, 0.31)),
+                    se.fit = TRUE)) %>%
+  mutate(est = exp(fit),
+         lwr = exp(fit - 1.96 * se.fit),
+         upr = exp(fit + 1.96 * se.fit))
