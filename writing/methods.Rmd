@@ -235,8 +235,8 @@ There was no evidence that home ranges sizes differed between sexes (males: 5.43
 
 The Atlantic Forest, Cerrado, and Pantanal vary substantially in habitat composition, levels of human disturbance, and tapir population densities. Despite these differences, we found that lowland tapir movement behaviour and space use were consistent across all three biomes (Fig. \@ref(fig:meta).
 
-```{r lu-reg, fig.cap='Estimated mean effect of exposed dirt on the tapirs\' estimated home range area.'}
-knitr::include_graphics('../figures/lu-regression.png')
+```{r lu-reg-hr, fig.cap='Estimated mean effect of exposed dirt on the tapirs\' estimated home range area.'}
+knitr::include_graphics('../figures/lu-regression-hr.png')
 
 ### model summary:
 # Family: Gamma 
@@ -261,34 +261,42 @@ knitr::include_graphics('../figures/lu-regression.png')
 # -REML = 193.89  Scale est. = 0.64264   n = 74
 ```
 
-We also found that habitat type had little effect on HR area or average individual movement speeds (Fig. lu-reg). The best HR area model only accounted for the effect of areas of exposed soil (approximate p-value: 0.023, $R^2_{adj}$ = 0.477), while no land use types had a significant effect on an animal's average speed. There was very little difference between the AIC of the full model (312.51, df = 11.41, 8 predictors) and that of the model with not predictors but the intercept term (310.89, df = 2).
+We also found that habitat type had little effect on HR area or average individual movement speeds (Fig. lu-reg-hr). The best HR area model only accounted for the effect of areas of exposed soil (approximate p-value: 0.023, $R^2_{adj}$ = 0.477), while no land use types had a significant effect on an animal's average speed. There was very little difference between the AIC of the full model (315.69, df = 10.18, 7 predictors and an intercept) and that of the model with no predictors but the intercept term (310.89, df = 2). However, the directional persistance term ($\tau_v$) was significantly lower for animals who had a higher amount of forested area or water in their home range (Fig. \@ref(fig:lu-reg-tau-v)).
 
-HFI had no significant effect on either lowland tapir home range size (p-value = 0.90; Fig. \@ref(fig:hfi-reg)a), nor average daily movement speed (p-value = 0.53; Fig. \@ref(fig:hfi-reg)b). A tapir living in a near pristine environment (HFI = 0.004) was estimated to have a home range of 7.77 km$^2$ (95% CI: 2.12 - 28.6) and an average speed of 13.19 km/day (95% CI: 7.82 - 22.1), while a tapir from the most altered habitat we monitored (HFI = 0.31) had an estimated home range area of 6.93 km$^2$ (95% CI: 3.36 - 14.3) and an average speed of 10.43 km/day (95% CI: 8.27 - 13.2).
+```{r lu-reg-tau-v, fig.cap='Effect of forested area or water in a tapir\'s home range on its estimated directional persistence. The point indicated as an outlier was removed from the dataset for the purpose of the regression.'}
+knitr::include_graphics('../figures/lu-regression-tau-v.png')
+```
+
+HFI had no significant effect on lowland tapir home range size (p-value = 0.90; Fig. \@ref(fig:hfi-reg)a), nor average daily movement speed (p-value = 0.53; Fig. \@ref(fig:hfi-reg)b), nor directional persistance (p-value = 0.596, $R^2_{adj} = -0.0184$, after removing outlier estimate: p-value = 0.188, $R^2_{adj} = 0.0129$). A tapir living in a near pristine environment (HFI = 0.004) was estimated to have a home range of 7.77 km$^2$ (95% CI: 2.12 - 28.6) and an average speed of 13.19 km/day (95% CI: 7.82 - 22.1) with a directional persistence of 0.355 hours (95% CI: 0.160 - 0.784), while a tapir from the most altered habitat we monitored (HFI = 0.31) had an estimated home range area of 6.93 km$^2$ (95% CI: 3.36 - 14.3) and an average speed of 10.43 km/day (95% CI: 8.27 - 13.2) with a directional persistence of 0.478 hours (95% CI: 0.335 - 0.683).
 
 ```{r hfi-reg, fig.cap='Estimated mean effect of machine-learning-based human footprint index (ml-HFI) on the tapirs\' estimated home range area and estimated average daily speed.'}
 knitr::include_graphics('../figures/hfi-regressions.png')
 ```
 
 ```{r, eval = FALSE, echo = FALSE}
-# see hfi-regressions.R
+# see hfi-regressions.R, use m4 without outlier
 MIN <- min(tapirs$hfi.mean) %>% round(3)
 MAX <- max(tapirs$hfi.mean) %>% round(3)
 # estimates
 tibble(hfi.mean = c(MIN, MAX),
        bind_cols(predict(m0, newdata = tibble(hfi.mean), se.fit = TRUE),
-                 predict(m3, newdata = tibble(hfi.mean), se.fit = TRUE))) %>%
+                 predict(m3, newdata = tibble(hfi.mean), se.fit = TRUE),
+                 predict(m4, newdata = tibble(hfi.mean), se.fit = TRUE))) %>%
   transmute(hfi.mean,
             est.hr = exp(fit...1),
             low.hr = exp(fit...1 - 1.96 * se.fit...2),
             high.hr = exp(fit...1 + 1.96 * se.fit...2),
             est.speed = exp(fit...3),
             low.speed = exp(fit...3 - 1.96 * se.fit...4),
-            high.speed = exp(fit...3 + 1.96 * se.fit...4))
+            high.speed = exp(fit...3 + 1.96 * se.fit...4),
+            est.tau.v = exp(fit...5),
+            low.tau.v = exp(fit...5 - 1.96 * se.fit...6),
+            high.tau.v = exp(fit...5 + 1.96 * se.fit...6))
 
 summary(m0)
 summary(m3)
+summary(m4)
 ```
-
 
 # Discussion {-}
 
