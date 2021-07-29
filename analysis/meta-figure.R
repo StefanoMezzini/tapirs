@@ -159,4 +159,4 @@ plot_grid(get_legend(p.areas +
                     ncol = 2, byrow = TRUE, label_y = 1.04),
           ncol = 1, rel_heights = c(0.05, 1))
 
-ggsave('figures/meta.png', width = 6.86, height = 6, scale = 1.5)
+ggsave('figures/meta.png', width = 6.86, height = 6, scale = 1.5, bg = 'white')
