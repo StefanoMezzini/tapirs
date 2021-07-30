@@ -23,7 +23,7 @@ tapirs <- readRDS('models/tapirs-land-use.rds') %>% # tapir data
 if(FALSE) { # re-crop rasters
   # land use rasters
   lu.atl <- raster('data/spatial-layers/1- ATLANTIC FOREST/MA_Habitat.tif')
-  lu.pan <-raster('data/spatial-layers/2- PANTANAL/PANTANAL_USO_SOLO_03_2017.tif')
+  lu.pan <- raster('data/spatial-layers/2- PANTANAL/PANTANAL_USO_SOLO_03_2017.tif')
   lu.cer <- raster('data/spatial-layers/3- CERRADO/CERRADO_USO_SOLO_09_2016.tif')
   
   # tapir data without clipped rasters
