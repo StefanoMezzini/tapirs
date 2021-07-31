@@ -65,6 +65,8 @@ __Statement on human or animal subjects:__ The Instituto Chico Mendes de Conserv
 
 * Create a csv file with summary stats for each animal (ID, sampling duration, sampling interval, sampling type, biome, HR size, habitat proportions, HFI, etc.) to be included as supplementary material.
 
+* classify land use type currently labelled "?"
+
 # Abstract {-}
 
 __Keywords:__
@@ -131,7 +133,7 @@ To test whether tapirs responded to different environment types, the HR sizes an
 
 # Results {-}
 [I THINK THESE RESULTS SHOULD ULTIMATELY END UP IN SUPPLEMENTARY MATERIAL]
-There was no significant difference in the home range estimates between individuals who were monitored using GPS collars, VHF tracking, or a mixture of the two (GPS as the control, p-values: 0.495 for GPS and VHF, 0.739 for VHF only, see Fig. \@ref(fig:vhf-hr)).
+There was no significant difference in the home range estimates between individuals who were monitored using GPS collars, VHF tracking, or a mixture of the two (GPS as the control, p-values: 0.495 for GPS and VHF, 0.739 for VHF only, see Fig. \@ref(fig:vhf-hr)) *USE METAFOR?*.
 
 ```{r vhf-hr, fig.cap='Estimated 95% home range area by tracking method. Tapirs were monitored using GPS collars, Very High Frequency (VHF) tracking, or both.', fig.pos='h'}
 knitr::include_graphics('../figures/vhf-hr-boxplots.png')
@@ -143,17 +145,81 @@ knitr::include_graphics('../figures/vhf-hr-boxplots.png')
 
 ```{r speed-regressions, eval=FALSE}
 library('dplyr')     # for data wrangling
-library('ggplot2')   # for plotting
+library('purrr')     # for functional programming
 library('mgcv')      # for fitting GAMs
-
-# color palette
-pal <- c('#4477AA', '#ff8c00', '#66CCEE', '#009900',
-         '#CCBB44', '#EE6677', '#AA3377', '#BBBBBB')
+library('ctmm')      # for animal movement stuff
+library('metafor')   # for meta-analysis
+N <- 74 # number of tapirs
 
 tapirs <- readRDS('../models/tapirs-final.rds') # tapir data
-table(tapirs$age) # categories with 1 individual -> group ages together
+
+# categories with 1 individual -> group ages together
+table(tapirs$age)
 table(tapirs$adult)
 
+# HR
+meta(tapirs$model, plot = FALSE) %>% round(2)
+# to extract SDs: ctmm:::area.covm(tapirs$model[[1]]$sigma)
+# to extract DFs: map_dbl(tapirs$model, ctmm:::DOF.area)
+
+d.hr <-
+  escalc(measure = 'MN', # regression on the (untransformed) mean
+         mi = area.est, # estimates
+         sdi = map_dbl(1:N, # standard deviations
+                       function(i)
+                         ctmm:::area.covm(tapirs$model[[i]]$sigma)) %>% sqrt(),
+         ni = map_dbl(tapirs$model, ctmm:::DOF.area),
+         data = tapirs)
+
+summary(rma(yi ~ 1, vi, data = d.hr, method = 'REML'))
+
+
+# tau_p
+d.tp <-
+  escalc(measure = 'MN', # regression on the (untransformed) mean
+         mi = tau.position.est, # estimates
+         sdi = map_dbl(1:N, # standard deviations
+                       function(i)
+                         diag(tapirs$model[[i]]$COV)['tau position']) %>% sqrt(),
+         ni = map_dbl(tapirs$model, ctmm:::DOF.area),
+         data = tapirs)
+
+# may not be able to obtain stable results #####################################
+summary(rma(yi ~ region, vi, data = d.tp, method = 'REML'))
+summary(rma(yi ~ sex, vi, data = d.tp, method = 'REML'))
+summary(rma(yi ~ adult, vi, data = d.tp, method = 'REML'))
+
+# tau_v
+d.tp <-
+  escalc(measure = 'MN',
+         mi = tau.velocity.est,
+         sdi = map_dbl(1:N,
+                       function(i)
+                         speed(tapirs$model[[i]]$COV)['tau velocity']) %>%
+           sqrt(),
+         ni = map_dbl(1:N,
+                      function(i)
+                        summary(tapirs$model[[i]])$DOF['speed'],
+         data = tapirs)
+
+summary(rma(yi ~ 1, vi, data = d.tv, method = 'REML'))
+
+# speed
+d.speed <-
+  escalc(measure = 'MN',
+         mi = speed.est,
+         sdi = map_dbl(1:N,
+                       function(i) i) %>% sqrt(),
+         ni = map_dbl(1:N,
+                      function(i)
+                        summary(tapirs$model[[i]])$DOF['speed'],
+         data = tapirs)
+
+summary(rma(yi ~ 1, vi, data = d.tv, method = 'REML'))
+summary(rma(yi ~ adult, vi, data = d.tv, method = 'REML'))
+summary(rma(yi ~ sex, vi, data = d.tv, method = 'REML'))
+
+# same tests with mgcv::gam ####################################################
 m.speed.sex <- gam(speed.est ~ sex,
                    family = Gamma('log'),
                    data = tapirs,
@@ -179,7 +245,7 @@ tibble(Adult = c('Yes', 'No'),
          upr = round(exp(fit + 1.96 * se.fit), 2))
 ```
 
-The mean home range size across all monitored tapirs was 5.82 km$^2$ (95% CI: 4.71 - 7.12; Fig. \@ref(fig:akdes)) *META IN CTMM*, ranging between  1 km$^2$ and 29.7 km$^2$ (Fig. \@ref(fig:meta)a). Tapirs had HR crossing times of 0.72 days on average (95% CI: 0.35 - 1.10) *METAFOR*, ranging from 0.05 to 12.8 days (Fig. \@ref(fig:meta)b), and a mean velocity autocorrelation timescale of 0.44 hours (95% CI: 0.39 - 0.49) *METAFOR*, ranging from 0.17 to 1.88 hours (Fig. \@ref(fig:meta)c). We estimated that tapirs had mean movement speeds of 11.2 km/day (95% CI: 10.2 - 12.1) *METAFOR*, ranging from 1.51 to 25.96 km/day (Fig. \@ref(fig:meta)d). There was no evidence that average daily speed differed between sexes (females: 10.5 km/day, 95% CI: 9.19 - 12.0; males: 11.9 km/day; 95% CI: 10.3 - 13.7, $p = 0.22$, \@ref(fig:boxplots)a) *METAFOR*, and there was little to no evidence of it differing between age groups (adults: 11.8 km/day, 95% CI: 10.6 - 13.2; sub-adults: 9.52 km/day, 95% CI: 7.94 - 11.4; $p = 0.053$, Fig. \@ref(fig:boxplots)b) *METAFOR*.
+The mean home range size across all monitored tapirs was 8.31 km$^2$ (95% CI: 6.53 - 10.42; Fig. \@ref(fig:akdes)) *CORRECTED: NOW USING meta() ON THE CTMM MODEL INSTEAD OF ON THE ADKEs*, ranging between 1 km$^2$ and 29.7 km$^2$ (Fig. \@ref(fig:meta)a). Tapirs had HR crossing times of 0.72 days on average (95% CI: 0.35 - 1.10) *NOT USING METAFOR BECAUSE IT GIVES AN IMPOSSIBLE CI: (-1.8181, 8.8773)*, ranging from 0.05 to 12.8 days (Fig. \@ref(fig:meta)b), and a mean velocity autocorrelation timescale of 0.44 hours (95% CI: 0.39 - 0.49) *METAFOR*, ranging from 0.17 to 1.88 hours (Fig. \@ref(fig:meta)c). We estimated that tapirs had mean movement speeds of 11.2 km/day (95% CI: 10.2 - 12.1) *METAFOR*, ranging from 1.51 to 25.96 km/day (Fig. \@ref(fig:meta)d). There was no evidence that average daily speed differed between sexes (females: 10.5 km/day, 95% CI: 9.19 - 12.0; males: 11.9 km/day; 95% CI: 10.3 - 13.7, $p = 0.22$, \@ref(fig:boxplots)a) *METAFOR*, and there was little to no evidence of it differing between age groups (adults: 11.8 km/day, 95% CI: 10.6 - 13.2; sub-adults: 9.52 km/day, 95% CI: 7.94 - 11.4; $p = 0.053$, Fig. \@ref(fig:boxplots)b) *METAFOR*.
 
 ```{r akdes, fig.cap='Autocorrelated kernel density estimations of each tapir\'s 95% home range.'}
 knitr::include_graphics('../figures/hr-map.png')
@@ -333,5 +399,11 @@ We compared home range areas and movement behavior of lowland tapirs using telem
 # Acknowledgments {-}
 
 The study of tapir movement ecology has been an important component of the long-term activities of the Lowland Tapir Conservation Initiative (LTCI) – Instituto de Pesquisas Ecológicas (IPÊ) in Brazil. The LTCI has the institutional support from the International Union for Conservation of Nature (IUCN) Species Survival Commission (SSC) Tapir Specialist Group (TSG), Association of Zoos and Aquariums (AZA) Tapir Taxon Advisory Group (TAG), and European Association of Zoos and Aquariums (EAZA) Tapir Taxon Advisory Group (TAG). LTCI's financial support comes from national and international agencies, including zoological institutions, foundations, private businesses, and private individuals. MJN was supported by an NSERC Discovery Grant RGPIN-2021-02758. This work was partially funded by the Center of Advanced Systems Understanding (CASUS) which is financed by Germany's Federal Ministry of Education and Research (BMBF) and by the Saxon Ministry for Science, Culture and Tourism (SMWK) with tax funds on the basis of the budget approved by the Saxon State Parliament. CHF, and JMC were supported by NSF IIBR 1915347. EPM would like to thank the Smithsonian Conservation Biology Institute (SCBI) for hosting her for a 2-month research visit for initial data processing and analysis. 
+
+# Appendix figures {-}
+
+```{r habitat-types, fig.cap='Proportion of habitat type in each of the three study areas (a) and proportion of each land use type within the home range of each tapir (b).'}
+knitr::include_graphics('../figures/habitat-types.png')
+```
 
 # References {-}
