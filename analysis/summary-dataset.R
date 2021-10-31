@@ -1,16 +1,7 @@
 library('tidyr')      # for data wrangling (want to mask tidyr::extract())
-# library('sf')         # to work with spData maps
-# library('sp')         # to import spatial layers
 library('ctmm')       # using the github version (0.6.1)
-# library('raster')     # to import human footprint index raster
 library('dplyr')      # for data wrangling
 library('purrr')      # for functional mapping
-# library('ggplot2')    # for plotting
-# library('cowplot')    # for plot grids
-# library('mgcv')       # for fitting GAMs
-# library('gratia')     # for GAM plots
-# theme_set(theme_bw())
-N <- 74 # number of tapirs
 
 tapirs <-
   readRDS('models/tapirs-land-use.rds') %>% # tapir data
