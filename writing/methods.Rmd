@@ -225,7 +225,7 @@ tibble(Adult = c('Yes', 'No'),
 
 The mean home range size across all monitored tapirs was 8.31 km$^2$ (95% CI: 6.53 - 10.42; Fig. \@ref(fig:akdes)), ranging between 1 km$^2$ and 29.7 km$^2$ (Fig. \@ref(fig:meta)a). Tapirs had HR crossing times of 0.72 days on average (95% CI: 0.35 - 1.10), ranging from 0.05 to 12.8 days (Fig. \@ref(fig:meta)b), and a mean velocity autocorrelation timescale of 0.44 hours (95% CI: 0.39 - 0.49), ranging from 0.17 to 1.88 hours (Fig. \@ref(fig:meta)c). We estimated that tapirs had mean movement speeds of 11.2 km/day (95% CI: 10.2 - 12.1), ranging from 1.51 to 25.96 km/day (Fig. \@ref(fig:meta)d). There was no evidence that average daily speed differed between sexes (females: 10.5 km/day, 95% CI: 9.19 - 12.0; males: 11.9 km/day; 95% CI: 10.3 - 13.7, $p = 0.22$, \@ref(fig:boxplots)a), nor between age groups (adults: 11.8 km/day, 95% CI: 10.6 - 13.2; sub-adults: 9.52 km/day, 95% CI: 7.94 - 11.4; $p = 0.053$, Fig. \@ref(fig:boxplots)b).
 
-```{r akdes, fig.cap='Autocorrelated kernel density estimations of each tapir\'s 95% home range.'}
+```{r akdes, fig.cap='Autocorrelated kernel density estimations of each tapir\'s 95% home range in each of the three regions: Atlantic forest (a), Pantanal (b), and Cerrado (c).'}
 knitr::include_graphics('../figures/hr-map.png')
 ```
 
@@ -406,7 +406,7 @@ knitr::include_graphics('../figures/habitat-types.png')
 
 
 ```{r lu-reg-tau-v-OUT, fig.cap='Effect of forested area or water in a tapir\'s home range on its estimated directional persistence. The point indicated as an outlier was removed from the dataset for the purpose of the regression.'}
-knitr::include_graphics('../figures/lu-regression-tau-v.png')
+knitr::include_graphics('../figures/lu-regression-tau-v_OUTLIERS.png')
 ```
 
 
