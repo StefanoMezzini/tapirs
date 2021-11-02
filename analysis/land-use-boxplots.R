@@ -16,6 +16,9 @@ pal <- c('#4477AA', '#ff8c00', '#66CCEE')
 
 # single column of all relevant habitat type proportions
 tapirs <- readRDS('models/tapirs-land-use.rds') %>%
+  mutate(region.lab = if_else(region.lab == 'Mata Atlantica',
+                              'Atlantic forest', as.character(region.lab)) %>%
+           factor(levels = c('Atlantic forest', 'Pantanal', 'Cerrado'))) %>%
   pivot_longer(c(forest, floodplain, pasture, crop, dirt, savannah, water,
                  urban, plantation), names_to = 'Habitat type',
                values_to = 'Proportion') %>%
@@ -113,7 +116,6 @@ p2 <-
   scale_fill_manual('Region', values = pal) +
   theme(legend.position = 'top')
 
-plot_grid(p1, p2, labels = c('a.', 'b.'))
+plot_grid(p1, p2, labels = c('a)', 'b)'))
 ggsave('figures/habitat-types.png', width = 6.86, height = 4, dpi = 300,
        scale = 1.5)
-
