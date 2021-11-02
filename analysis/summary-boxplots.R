@@ -25,7 +25,7 @@ s.box <-
   tapirs %>%
   select(region.lab, name, speed.est, age, sex, adult) %>%
   ggplot() +
-  scale_fill_manual('Region', values = pal,  labels = c('Atlantic Forest', 'Pantanal', 'Cerrado')) +
+  scale_fill_manual('Region', values = pal,  labels = c('Atlantic forest', 'Pantanal', 'Cerrado')) +
   scale_y_continuous('Speed (km/day)') +
   theme(legend.position = 'none')
 spe.s <- s.box + geom_boxplot(aes(x = sex, y = speed.est, fill = region.lab)) +

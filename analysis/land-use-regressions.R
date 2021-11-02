@@ -251,7 +251,7 @@ p <-
   geom_ribbon(aes(dirt, ymin = lwr, ymax = upr), pred, alpha = 0.2) +
   geom_line(aes(dirt, est), pred) +
   geom_point(aes(dirt, area.est, color = region.lab), tapirs, alpha = 0.9) +
-  scale_color_manual('Region', values = pal[1:3],  labels = c('Atlantic Forest', 'Pantanal', 'Cerrado')) +
+  scale_color_manual('Region', values = pal[1:3],  labels = c('Atlantic forest', 'Pantanal', 'Cerrado')) +
   labs(x = 'Proportion of exposed soil in the habitat',
        y = expression('Home Range Area'~(km^2))) +
   theme(legend.position = 'top',
@@ -279,103 +279,109 @@ pred2 <-
          upr = exp(fit + 1.96 * se.fit))
 
 # regression plot
-p <-
-  plot_grid(
-    ggplot() +
-      geom_ribbon(aes(dirt, ymin = lwr, ymax = upr), pred, alpha = 0.2) +
-      geom_line(aes(dirt, est), pred) +
-      geom_segment(aes(x = dirt, xend = dirt, y = area.low, yend = area.high,
-                       color = region.lab), tapirs, lwd = 0.5, alpha = 0.5) +
-      geom_point(aes(dirt, area.est, color = region.lab), tapirs, alpha = 0.9) +
-      scale_color_manual('Region', values = pal[1:3],
-                         labels = c('Atlantic Forest', 'Pantanal', 'Cerrado')) +
-      labs(x = 'Proportion of exposed soil in the habitat',
-           y = expression('Home Range Area'~(km^2))) +
-      theme(legend.position = 'top',
-            panel.grid = element_blank()),
-    
-    ggplot() +
-      geom_ribbon(aes(forest, ymin = lwr, ymax = upr), pred1, alpha = 0.2) +
-      geom_line(aes(forest, est), pred1) +
-      geom_segment(aes(x = forest, xend = forest, y = tau.velocity.low,
-                       yend = tau.velocity.high, color = region.lab), tapirs,
-                   lwd = 0.5, alpha = 0.5) +
-      geom_point(aes(forest, tau.velocity.est, color = region.lab,
-                     shape = tau.velocity.est > 1.5),
-                 filter(tapirs, ! is.na(tau.velocity.est)), alpha = 0.9) +
-      scale_shape_manual('Outlier', values = c(19, 4), labels = c('No', 'Yes')) +
-      scale_color_manual('Region', values = pal[1:3]) +
-      labs(x = 'Proportion of forested habitat',
-           y = 'Directional persistence (hours)') +
-      theme(legend.position = 'top'),
-    
-    ggplot() +
-      geom_ribbon(aes(water, ymin = lwr, ymax = upr), pred2, alpha = 0.2) +
-      geom_line(aes(water, est), pred2) +
-      geom_segment(aes(x = water, xend = water, y = tau.velocity.low,
-                       yend = tau.velocity.high, color = region.lab), tapirs,
-                   lwd = 0.5, alpha = 0.5) +
-      geom_point(aes(water, tau.velocity.est, color = region.lab,
-                     shape = tau.velocity.est > 1.5),
-                 filter(tapirs, ! is.na(tau.velocity.est)), alpha = 0.9) +
-      scale_shape_manual('Outlier', values = c(19, 4), labels = c('No', 'Yes'))+
-      scale_color_manual('Region', values = pal[1:3]) +
-      labs(x = 'Proportion of water in the habitat',
-           y = 'Directional persistence (hours)') +
-      theme(legend.position = 'none'),
-    ncol = 1, rel_heights = c(1.2, 1)); p
+p.dirt <-
+  ggplot() +
+  geom_ribbon(aes(dirt, ymin = lwr, ymax = upr), pred, alpha = 0.2) +
+  geom_line(aes(dirt, est), pred) +
+  geom_segment(aes(x = dirt, xend = dirt, y = area.low, yend = area.high,
+                   color = region.lab), tapirs, lwd = 0.5, alpha = 0.5) +
+  geom_point(aes(dirt, area.est, color = region.lab), tapirs, alpha = 0.9) +
+  scale_color_manual('Region', values = pal[1:3],
+                     labels = c('Atlantic forest', 'Pantanal', 'Cerrado')) +
+  labs(x = 'Proportion of exposed soil in the habitat',
+       y = expression('Home Range Area'~(km^2))) +
+  theme(legend.position = 'none', panel.grid = element_blank())
+p.forest <-
+  ggplot() +
+  geom_ribbon(aes(forest, ymin = lwr, ymax = upr), pred1, alpha = 0.2) +
+  geom_line(aes(forest, est), pred1) +
+  geom_segment(aes(x = forest, xend = forest, y = tau.velocity.low,
+                   yend = tau.velocity.high, color = region.lab), tapirs,
+               lwd = 0.5, alpha = 0.5) +
+  geom_point(aes(forest, tau.velocity.est, color = region.lab,
+                 shape = tau.velocity.est > 1.5),
+             filter(tapirs, ! is.na(tau.velocity.est)), alpha = 0.9) +
+  scale_shape_manual('Outlier', values = c(19, 4), labels = c('No', 'Yes')) +
+  scale_color_manual('Region', values = pal[1:3]) +
+  labs(x = 'Proportion of forested habitat',
+       y = 'Directional persistence (hours)') +
+  theme(legend.position = 'none')
+p.water <-
+  ggplot() +
+  geom_ribbon(aes(water, ymin = lwr, ymax = upr), pred2, alpha = 0.2) +
+  geom_line(aes(water, est), pred2) +
+  geom_segment(aes(x = water, xend = water, y = tau.velocity.low,
+                   yend = tau.velocity.high, color = region.lab), tapirs,
+               lwd = 0.5, alpha = 0.5) +
+  geom_point(aes(water, tau.velocity.est, color = region.lab,
+                 shape = tau.velocity.est > 1.5),
+             filter(tapirs, ! is.na(tau.velocity.est)), alpha = 0.9) +
+  scale_shape_manual('Outlier', values = c(19, 4), labels = c('No', 'Yes'))+
+  scale_color_manual('Region', values = pal[1:3]) +
+  labs(x = 'Proportion of water in the habitat',
+       y = 'Directional persistence (hours)') +
+  theme(legend.position = 'none')
+p <- plot_grid(get_legend(p.forest + theme(legend.position = 'top')),
+               p.dirt, p.forest, p.water,
+               ncol = 1, rel_heights = c(0.2, 1, 1, 1),
+               labels = c(NA, 'a)', 'b)', 'c)')); p
 
-ggsave('figures/lu-regression-tau-v_OUTLIERS.png', height = 3, width = 3.23,
-       scale = 2)
+ggsave('figures/lu-regression-tau-v_OUTLIERS.png', height = 6, width = 3.23,
+       scale = 2, bg = 'white')
 
 ################################################
 # Regression plot without outliers
 ################################################
+p.dirt <-
+  ggplot() +
+  geom_ribbon(aes(dirt, ymin = lwr, ymax = upr), pred, alpha = 0.2) +
+  geom_line(aes(dirt, est), pred) +
+  geom_segment(aes(x = dirt, xend = dirt, y = area.low, yend = area.high,
+                   color = region.lab), tapirs, lwd = 0.5, alpha = 0.5) +
+  geom_point(aes(dirt, area.est, color = region.lab), tapirs, alpha = 0.9) +
+  scale_color_manual('Region', values = pal[1:3],
+                     labels = c('Atlantic forest', 'Pantanal', 'Cerrado')) +
+  labs(x = 'Proportion of exposed soil in the habitat',
+       y = expression('Home Range Area'~(km^2))) +
+  theme(legend.position = 'none',
+        panel.grid = element_blank())
 
-# regression plot
+p.forest <-
+  ggplot() +
+  geom_ribbon(aes(forest, ymin = lwr, ymax = upr), pred1, alpha = 0.2) +
+  geom_line(aes(forest, est), pred1) +
+  geom_segment(aes(x = forest, xend = forest, y = tau.velocity.low,
+                   yend = tau.velocity.high, color = region.lab),
+               filter(tapirs, tau.velocity.est < 1.5), lwd = 0.5,
+               alpha = 0.5) +
+  geom_point(aes(forest, tau.velocity.est, color = region.lab),
+             filter(tapirs, tau.velocity.est < 1.5), alpha = 0.9) +
+  scale_color_manual('Region', values = pal[1:3]) +
+  labs(x = 'Proportion of forested habitat',
+       y = 'Directional persistence (hrs)') +
+  theme(legend.position = 'none')
+
+p.water <-
+  ggplot() +
+  geom_ribbon(aes(water, ymin = lwr, ymax = upr), pred2, alpha = 0.2) +
+  geom_line(aes(water, est), pred2) +
+  geom_segment(aes(x = water, xend = water, y = tau.velocity.low,
+                   yend = tau.velocity.high, color = region.lab),
+               filter(tapirs, tau.velocity.est < 1.5),
+               lwd = 0.5, alpha = 0.5) +
+  geom_point(aes(water, tau.velocity.est, color = region.lab),
+             filter(tapirs, tau.velocity.est < 1.5), alpha = 0.9) +
+  scale_color_manual('Region', values = pal[1:3]) +
+  labs(x = 'Proportion of water in the habitat',
+       y = 'Directional persistence (hrs)') +
+  theme(legend.position = 'none')
+
 p <-
   plot_grid(
-    ggplot() +
-      geom_ribbon(aes(dirt, ymin = lwr, ymax = upr), pred, alpha = 0.2) +
-      geom_line(aes(dirt, est), pred) +
-      geom_segment(aes(x = dirt, xend = dirt, y = area.low, yend = area.high,
-                       color = region.lab), tapirs, lwd = 0.5, alpha = 0.5) +
-      geom_point(aes(dirt, area.est, color = region.lab), tapirs, alpha = 0.9) +
-      scale_color_manual('Region', values = pal[1:3],
-                         labels = c('Atlantic Forest', 'Pantanal', 'Cerrado')) +
-      labs(x = 'Proportion of exposed soil in the habitat',
-           y = expression('Home Range Area'~(km^2))) +
-      theme(legend.position = 'top',
-            panel.grid = element_blank()),
-    
-    ggplot() +
-      geom_ribbon(aes(forest, ymin = lwr, ymax = upr), pred1, alpha = 0.2) +
-      geom_line(aes(forest, est), pred1) +
-      geom_segment(aes(x = forest, xend = forest, y = tau.velocity.low,
-                       yend = tau.velocity.high, color = region.lab),
-                   filter(tapirs, tau.velocity.est < 1.5), lwd = 0.5,
-                   alpha = 0.5) +
-      geom_point(aes(forest, tau.velocity.est, color = region.lab),
-                 filter(tapirs, tau.velocity.est < 1.5), alpha = 0.9) +
-      scale_color_manual('Region', values = pal[1:3]) +
-      labs(x = 'Proportion of forested habitat',
-           y = 'Directional persistence (hrs)') +
-      theme(legend.position = 'none'),
-    
-    ggplot() +
-      geom_ribbon(aes(water, ymin = lwr, ymax = upr), pred2, alpha = 0.2) +
-      geom_line(aes(water, est), pred2) +
-      geom_segment(aes(x = water, xend = water, y = tau.velocity.low,
-                       yend = tau.velocity.high, color = region.lab),
-                   filter(tapirs, tau.velocity.est < 1.5),
-                   lwd = 0.5, alpha = 0.5) +
-      geom_point(aes(water, tau.velocity.est, color = region.lab),
-                 filter(tapirs, tau.velocity.est < 1.5), alpha = 0.9) +
-      scale_color_manual('Region', values = pal[1:3]) +
-      labs(x = 'Proportion of water in the habitat',
-           y = 'Directional persistence (hrs)') +
-      theme(legend.position = 'none'),
-    ncol = 1,
-    labels = c('a)', 'b)', 'c)')); p
+    get_legend(p.dirt + theme(legend.position = 'top')),
+    p.dirt, p.forest, p.water,
+    ncol = 1, rel_heights = c(0.2, 1, 1, 1),
+    labels = c(NA, 'a)', 'b)', 'c)')); p
 
-ggsave('figures/lu-regression-tau-v_NEW.png', height = 6, width = 3.23, scale=2)
+ggsave('figures/lu-regression-tau-v_NEW.png', height = 6, width = 3.23,
+       scale = 2, bg = 'white')
