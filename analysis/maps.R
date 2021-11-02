@@ -33,6 +33,11 @@ tapirs <- readRDS('models/tapirs-final.rds') %>%
 # map example: https://methodsblog.com/2021/03/22/mapping-animal-movement-in-r-the-science-and-the-art/
 #              https://github.com/pratikunterwegs/elemove/blob/master/R/04_plot_code.R
 
+
+#Register API KEY
+register_google("AIzaSyB4kmWgqcGUpJ843kllnuGfzjUmik1bJaA")
+
+
 # spatial elements
 sa <- filter(spData::world,
              grepl('America', continent),
@@ -61,7 +66,7 @@ raw <-
           function(i) {
             mutate(suppressWarnings(as_tibble(tapirs$data[[i]])),
                    region = tapirs$region[i],
-                   region =  case_when(region == 'atlantica' ~ 'Mata Atlantica',
+                   region =  case_when(region == 'atlantica' ~ 'Atlantic Forest',
                                        region == 'pantanal' ~ 'Pantanal',
                                        region == 'cerrado' ~ 'Cerrado'),
                    name = tapirs$name[i],
@@ -79,7 +84,7 @@ boxes <- group_by(raw, region) %>%
             ymax = max(latitude),
             .groups = 'drop')
 
-# wide temporal range within Mata Atlantica and Pantanal
+# wide temporal range within Atlantic Forest and Pantanal
 group_by(raw, region) %>%
   summarize(min = min(day), max = max(day)) %>%
   mutate(range = max - min)
@@ -116,49 +121,61 @@ inset <-
   labs(x = 'Longitude', y = 'Latitude')
 
 plot.data <- function(reg) {
-  if(reg == 'Mata Atlantica') {
+  if(reg == 'Atlantic Forest') {
     r <- 'AF_'
     BOX <- c(left = -52.6, bottom = -22.7, right = -52, top = -22.3)
+    ZOOM <- 11
   } else if(reg == 'Pantanal') {
     r <- 'PA_'
     BOX <- c(left = -56.0, bottom = -19.45, right = -55.6, top = -19.15)
+    ZOOM <- 12
   } else if(reg == 'Cerrado'){
     r <- 'CE_'
     BOX <- c(left = -54, bottom = -21.85, right = -53.4, top = -21.45)
+    ZOOM <- 10
   } else {
     stop('invalid region name')
   }
   d <- filter(raw, region == reg)
-  MAP <- get_map(BOX, zoom = 11)
+  MAP <- get_map(BOX, zoom = ZOOM,
+                 maptype = "satellite",
+                 #color='bw',
+                 style="element:labels|visibility:off|
+                    style=feature:administrative.land_parcel|
+                    visibility:off|style=feature:administrative.neighborhood
+                    |visibility:off")
   scalebar.loc <- 0
   
-  ggmap(MAP) +
-    geom_point(aes(x = longitude, y = latitude, color = name), d, alpha = 0.1,
+  ggmap(MAP, darken = c(0.3, "white")) +
+    geom_point(aes(x = longitude, y = latitude, color = name), d, alpha = 0.4, shape = 20,
                lwd = 0.5, show.legend = FALSE) +
     scale_color_viridis_d(option = 'B') +
     labs(x = 'Longitude', y = 'Latitude', title = reg) +
     theme_map() +
-    scalebar(x.min = BOX['left'],
-             x.max = if(reg == 'Pantanal') BOX['right'] - 0.04 else
-               BOX['right'] - 0.05,
-             y.min = BOX['bottom'] + 0.03, y.max = BOX['top'] - 0.03,
-             dist = 10, dist_unit = 'km', transform = TRUE, border.size = 0.01,
-             st.size = 2, location = 'topright', height = -0.05, st.dist = 0.1)+
+    # scalebar(x.min = BOX['left'],
+    #          x.max = if(reg == 'Pantanal') BOX['right'] - 0.02 else
+    #            BOX['right'] - 0.05,
+    #          y.min = BOX['bottom'] + 0.03, y.max = BOX['top'] - 0.02,
+    #          dist = 5, dist_unit = 'km', transform = TRUE, border.size = 0.01,
+    #          st.size = 2, location = 'topright', height = -0.05, st.dist = 0.1)+
     theme(panel.border = element_rect(colour = 'black', fill = 'transparent'))
 }
-plot.data('Mata Atlantica') + theme_bw()
+
+plot.data('Atlantic Forest') + theme_bw()
 plot.data('Pantanal') + theme_bw()
 plot.data('Cerrado') + theme_bw()
 
 br.map <-
   plot_grid(inset,
             plot_grid(plot.data('Pantanal'), plot.data('Cerrado'),
-                      plot.data('Mata Atlantica'), nrow = 1, align = 'right',
+                      plot.data('Atlantic Forest'), nrow = 1, align = 'right',
                       scale = 0.85, label_fontface = 'plain'),
             ncol = 1, rel_heights = c(0.75, 0.25))
-ggsave('figures/data-map.png', plot = br.map, width = 6.86, height = 8,
-       dpi = 300, bg = 'white')
+ggsave('figures/data-map.png', plot = br.map, width = 6.86*1.5, height = 8*1.5,
+       dpi = 600, bg = 'white')
 beepr::beep()
+
+
 
 # home range plots ####
 atl.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('AF_', group))
@@ -167,15 +184,20 @@ cer.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('CE_', group))
 
 plot.akde <- function(reg) {
   # use BOXes in `if` statement if using hfi raster
-  if(reg == 'Mata Atlantica') {
+  if(reg == 'Atlantic Forest') {
     r <- 'AF_'
     BOX <- c(left = -52.6, bottom = -22.7, right = -52, top = -22.3)
+    ZOOM <- 11
   } else if(reg == 'Pantanal') {
     r <- 'PA_'
     BOX <- c(left = -56.0, bottom = -19.45, right = -55.6, top = -19.15)
-  } else {
+    ZOOM <- 12
+  } else if(reg == 'Cerrado'){
     r <- 'CE_'
     BOX <- c(left = -54, bottom = -21.85, right = -53.4, top = -21.45)
+    ZOOM <- 10
+  } else {
+    stop('invalid region name')
   }
   
   akdes <- bind_rows(tapirs$akde.df) %>%
@@ -184,7 +206,7 @@ plot.akde <- function(reg) {
   # box expansion factor 
   k <- case_when(reg == 'Pantanal' ~ 0.6,
                  reg == 'Cerrado' ~ 0.1,
-                 reg == 'Mata Atlantica' ~ 0.5)
+                 reg == 'Atlantic Forest' ~ 0.5)
   
   BOX <- akdes %>%
     summarize(left = min(long),
@@ -199,43 +221,50 @@ plot.akde <- function(reg) {
            top = top + 0.1 * (top - bottom)) %>%
     unlist()
   
-  MAP <- get_map(BOX, zoom = 11)
+  MAP <- get_map(BOX, zoom = ZOOM,
+                 maptype = "satellite",
+                 #color='bw',
+                 style="element:labels|visibility:off|
+                    style=feature:administrative.land_parcel|
+                    visibility:off|style=feature:administrative.neighborhood
+                    |visibility:off")
   # hfi.cropped <- filter(hfi,
   #                       x >= BOX['left'], x <= BOX['right'],
   #                       y >= BOX['bottom'], y <= BOX['top'])
   
-  ggmap(MAP) +
+  TITLE <- if(reg == 'Atlantic Forest'){paste("a )")} else if(reg == 'Pantanal'){paste("b)")} else if(reg == 'Cerrado'){paste("c)")}
+  ggmap(MAP, darken = c(0.3, "white")) +
     # geom_raster(aes(x, y, fill = hfi), hfi.cropped) +
     geom_polygon(aes(x = long, y = lat, fill = group), color = 'black',
                  alpha = 0.5, akdes, lwd = 0.15) +
     scale_fill_viridis_d('Human Footprint Index', option = 'B') +
-    labs(x = 'Longitude', y = 'Latitude', title = reg) +
-    scalebar(x.min = BOX['left'],
-             x.max = if(reg == 'Pantanal') BOX['right'] - 0.02 else
-               BOX['right'] - 0.05,
-             y.min = BOX['bottom'] + 0.03, y.max = BOX['top'] - 0.02,
-             dist = 5, dist_unit = 'km', transform = TRUE, border.size = 0.01,
-             st.size = 2, location = 'topright', height = -0.05, st.dist = 0.1)+
+    labs(x = 'Longitude', y = 'Latitude', title = TITLE) +
+    # scalebar(x.min = BOX['left'],
+    #          x.max = if(reg == 'Pantanal') BOX['right'] - 0.02 else
+    #            BOX['right'] - 0.05,
+    #          y.min = BOX['bottom'] + 0.03, y.max = BOX['top'] - 0.02,
+    #          dist = 5, dist_unit = 'km', transform = TRUE, border.size = 0.01,
+    #          st.size = 2, location = 'topright', height = -0.05, st.dist = 0.1)+
     theme(panel.border = element_rect(colour = 'black', fill = 'transparent'),
           legend.position = 'none')
 }
 
-hr.map <- plot_grid(plot.akde('Mata Atlantica'), plot.akde('Pantanal'),
+hr.map <- plot_grid(plot.akde('Atlantic Forest'), plot.akde('Pantanal'),
                     plot.akde('Cerrado'), ncol = 1)
 ggsave('figures/hr-map.png', plot = hr.map, width = 3.23, height = 6, scale = 2,
-       bg = 'white', dpi = 300)
+       bg = 'white', dpi = 600)
 
 # regional density plots
 get_map(c(left = -52.5, bottom = -22.7, right = -52.1, top = -22.35),
         zoom = 12) %>%
   ggmap() +
   stat_bin_2d(aes(longitude, latitude, fill = after_stat(density),group = name),
-              filter(raw, region == 'Mata Atlantica'), binwidth = c(5e-3, 5e-3)) +
+              filter(raw, region == 'Atlantic Forest'), binwidth = c(5e-3, 5e-3)) +
   scale_fill_viridis_c()
 
 ggmap(atl) +
   stat_bin_2d(aes(longitude, latitude, fill = after_stat(density)),
-              filter(raw, region == 'Mata Atlantica'), binwidth = c(5e-3, 5e-3)) +
+              filter(raw, region == 'Atlantic Forest'), binwidth = c(5e-3, 5e-3)) +
   scale_fill_viridis_c()
 ggmap(pan) +
   stat_bin_2d(aes(longitude, latitude, fill = after_stat(density)),

@@ -79,12 +79,13 @@ p.areas <-
   ggplot(tap) +
   geom_segment(aes(x = area.low, xend = area.high, y = name, yend = name,
                    color = region.lab), lwd = 2) +
-  geom_point(aes(x = area.est, y = name, shape = average), col = 'black', size = 1.5) +
-  geom_point(aes(x = area.est, y = name, shape = average), col = 'white', size = 1) +
+  geom_point(aes(x = area.est, y = name, shape = average), col = 'black', size = 1.2) +
+  geom_point(aes(x = area.est, y = name, shape = average), col = 'white', size = 0.7) +
   scale_shape_manual(element_blank(), values = c(19, 17)) +
-  scale_color_manual('Region', values = c(pal[1:3], 'black')) +
+  scale_color_manual('Region', values = c(pal[1:3], 'black'),
+                     labels = c('Atlantic Forest', 'Pantanal', 'Cerrado', 'Overall')) +
   scale_y_discrete(limits = rev,
-                   labels = c('Means', 'Cerrado', 'Pantanal', 'M. Atlântica'),
+                   labels = c('Means', 'Cerrado', 'Pantanal', 'Atlantic Forest'),
                    breaks = c('Mata Atlantica', 'CE_15_KURUKA',
                               'PA_33_GABRIELA', 'AF_14_JAMESBOND')) +
   labs(x = bquote('Estimated 95% home range area'~(km^2)),
@@ -97,13 +98,15 @@ p.tau.pos <-
                    xend = tau.position.high / (60^2 * 24), y = name, yend = name,
                    color = region.lab), lwd = 2) +
   geom_point(aes(x = tau.position.est / (60^2 * 24), y = name, shape = average),
-             col = 'black', size = 1.5) +
+             col = 'black', size = 1.2) +
   geom_point(aes(x = tau.position.est / (60^2 * 24), y = name, shape = average),
-             col = 'white', size = 1) +
+             col = 'white', size = 0.7) +
   scale_shape_manual(element_blank(), values = c(19, 17)) +
-  scale_color_manual('Region', values = c(pal[1:3], 'black')) +
+  scale_color_manual('Region', values = c(pal[1:3], 'black'),
+                     labels = c('Atlantic Forest', 'Pantanal', 'Cerrado', 'Overall')) +
+  labels = c('Atlantic Forest', 'Pantanal', 'Cerrado', 'Overall')) +
   scale_y_discrete(limits = rev,
-                   labels = c('Means', 'Cerrado', 'Pantanal', 'M. Atlântica'),
+                   labels = c('Means', 'Cerrado', 'Pantanal', 'Atlantic Forest'),
                    breaks = c('Mata Atlantica', 'CE_15_KURUKA',
                               'PA_33_GABRIELA', 'AF_14_JAMESBOND')) +
   labs(x = 'Range crossing time (days)', y = NULL); p.tau.pos
@@ -115,13 +118,14 @@ p.tau.vel <-
                    xend = tau.velocity.high / 60^2, y = name, yend = name,
                    color = region.lab), lwd = 2) +
   geom_point(aes(x = tau.velocity.est / 60^2, y = name, shape = average),
-             col = 'black', size = 1.5) +
+             col = 'black', size = 1.2) +
   geom_point(aes(x = tau.velocity.est / 60^2, y = name, shape = average),
-             col = 'white', size = 1) +
+             col = 'white', size = 0.7) +
   scale_shape_manual(element_blank(), values = c(19, 17)) +
-  scale_color_manual('Region', values = c(pal[1:3], 'black')) +
+  scale_color_manual('Region', values = c(pal[1:3], 'black'),
+                     labels = c('Atlantic Forest', 'Pantanal', 'Cerrado', 'Overall')) +
   scale_y_discrete(limits = rev,
-                   labels = c('Means', 'Cerrado', 'Pantanal', 'M. Atlântica'),
+                   labels = c('Means', 'Cerrado', 'Pantanal', 'Atlantic Forest'),
                    breaks = c('Mata Atlantica', 'CE_15_KURUKA',
                               'PA_33_GABRIELA', 'AF_14_JAMESBOND')) +
   labs(x = 'Directional persistence timescale (hours)', y = NULL); p.tau.vel
@@ -133,13 +137,14 @@ p.speeds <-
                    y = name, yend = name, color = region.lab), lwd = 2,
                show.legend = FALSE) +
   geom_point(aes(x = speed.est, y = name, shape = average), col = 'black',
-             size = 1.5, show.legend = FALSE) +
+             size = 1.2, show.legend = FALSE) +
   geom_point(aes(x = speed.est, y = name, shape = average), col = 'white',
-             size = 1, show.legend = FALSE) +
+             size = 0.7, show.legend = FALSE) +
   scale_shape_manual(element_blank(), values = c(19, 17)) +
-  scale_color_manual('Region', values = c(pal[1:3], 'black')) +
+  scale_color_manual('Region', values = c(pal[1:3], 'black'),
+                     labels = c('Atlantic Forest', 'Pantanal', 'Cerrado', 'Overall')) +
   scale_y_discrete(limits = rev,
-                   labels = c('M. Atlantica', 'Pantanal', 'Cerrado', 'Means'),
+                   labels = c('Atlantic Forest', 'Pantanal', 'Cerrado', 'Means'),
                    # breaks = c('AF_17_ESPERTA', 'PA_33_GABRIELA', 'CE_15_KURUKA',
                    # 'Mata Atlantica')) +
                    breaks = c('AF_17_ESPERTA', 'PA_33_GABRIELA', 'CE_15_KURUKA',
@@ -154,9 +159,9 @@ plot_grid(get_legend(p.areas +
                     p.tau.pos,
                     p.tau.vel,
                     p.speeds,
-                    labels = c('a.', 'b.', 'c.', 'd.'),
+                    labels = c('a)', 'b)', 'c)', 'd)'),
                     label_fontface = 'plain',
                     ncol = 2, byrow = TRUE, label_y = 1.04),
           ncol = 1, rel_heights = c(0.05, 1))
 
-ggsave('figures/meta.png', width = 6.86, height = 6, scale = 1.5, bg = 'white')
+ggsave('figures/meta.png', width = 6.86, height = 8, scale = 1.5, bg = 'white')

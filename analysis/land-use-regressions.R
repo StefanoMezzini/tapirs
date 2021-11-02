@@ -9,7 +9,10 @@ library('ggplot2')    # for plotting
 library('cowplot')    # for plot grids
 library('mgcv')       # for fitting GAMs
 library('gratia')     # for GAM plots
-theme_set(theme_bw())
+theme_set(theme_bw() +
+            theme(text = element_text(size = 14),
+                  panel.grid = element_blank()))
+
 N <- 74 # number of tapirs
 
 # color palette
@@ -245,10 +248,11 @@ p <-
   geom_ribbon(aes(dirt, ymin = lwr, ymax = upr), pred, alpha = 0.2) +
   geom_line(aes(dirt, est), pred) +
   geom_point(aes(dirt, area.est, color = region.lab), tapirs, alpha = 0.9) +
-  scale_color_manual('Region', values = pal[1:3]) +
-  labs(x = 'Proportion of exposed dirt in the habitat',
+  scale_color_manual('Region', values = pal[1:3],  labels = c('Atlantic Forest', 'Pantanal', 'Cerrado')) +
+  labs(x = 'Proportion of exposed soil in the habitat',
        y = expression('Home Range Area'~(km^2))) +
-  theme(legend.position = 'top'); p
+  theme(legend.position = 'top',
+        panel.grid = element_blank()); p
 
 # ggsave('figures/lu-regression-hr.png', height = 1.5, width = 3.23, scale = 2)
 
@@ -275,6 +279,16 @@ pred2 <-
 p <-
   plot_grid(
     ggplot() +
+      geom_ribbon(aes(dirt, ymin = lwr, ymax = upr), pred, alpha = 0.2) +
+      geom_line(aes(dirt, est), pred) +
+      geom_point(aes(dirt, area.est, color = region.lab), tapirs, alpha = 0.9) +
+      scale_color_manual('Region', values = pal[1:3],  labels = c('Atlantic Forest', 'Pantanal', 'Cerrado')) +
+      labs(x = 'Proportion of exposed soil in the habitat',
+           y = expression('Home Range Area'~(km^2))) +
+      theme(legend.position = 'top',
+            panel.grid = element_blank()),
+    
+    ggplot() +
       geom_ribbon(aes(forest, ymin = lwr, ymax = upr), pred1, alpha = 0.2) +
       geom_line(aes(forest, est), pred1) +
       geom_point(aes(forest, tau.velocity.est, color = region.lab,
@@ -298,4 +312,58 @@ p <-
       theme(legend.position = 'none'),
     ncol = 1, rel_heights = c(1.2, 1)); p
 
-# ggsave('figures/lu-regression-tau-v.png', height = 3, width = 3.23, scale = 2)
+ggsave('figures/lu-regression-tau-v_OUTLIERS.png', height = 3, width = 3.23, scale = 2)
+
+
+
+
+
+
+
+
+
+################################################
+# Regression plot without outliers
+################################################
+
+# regression plot
+p <-
+  plot_grid(
+    ggplot() +
+      geom_ribbon(aes(dirt, ymin = lwr, ymax = upr), pred, alpha = 0.2) +
+      geom_line(aes(dirt, est), pred) +
+      geom_point(aes(dirt, area.est, color = region.lab), tapirs, alpha = 0.9) +
+      scale_color_manual('Region', values = pal[1:3],  labels = c('Atlantic Forest', 'Pantanal', 'Cerrado')) +
+      labs(x = 'Proportion of exposed soil in the habitat',
+           y = expression('Home Range Area'~(km^2))) +
+      theme(legend.position = 'top',
+            panel.grid = element_blank()),
+    
+    ggplot() +
+      geom_ribbon(aes(forest, ymin = lwr, ymax = upr), pred1, alpha = 0.2) +
+      geom_line(aes(forest, est), pred1) +
+      geom_point(aes(forest, tau.velocity.est, color = region.lab,
+                     shape = tau.velocity.est > 1.5),
+                 filter(tapirs, tau.velocity.est < 1.5), alpha = 0.9) +
+      scale_shape_manual('Outlier', values = c(19, 4), labels = c('No', 'Yes')) +
+      scale_color_manual('Region', values = pal[1:3]) +
+      labs(x = 'Proportion of forested habitat',
+           y = 'Directional persistence (hrs)') +
+      theme(legend.position = 'none'),
+    
+    ggplot() +
+      geom_ribbon(aes(water, ymin = lwr, ymax = upr), pred2, alpha = 0.2) +
+      geom_line(aes(water, est), pred2) +
+      geom_point(aes(water, tau.velocity.est, color = region.lab,
+                     shape = tau.velocity.est > 1.5),
+                 filter(tapirs, tau.velocity.est < 1.5), alpha = 0.9) +
+      scale_shape_manual('Outlier', values = c(19, 4), labels = c('No', 'Yes')) +
+      scale_color_manual('Region', values = pal[1:3]) +
+      labs(x = 'Proportion of water in the habitat',
+           y = 'Directional persistence (hrs)') +
+      theme(legend.position = 'none'),
+    ncol = 1,
+    labels = c('a)', 'b)', 'c)')); p
+
+
+ggsave('figures/lu-regression-tau-v_NEW.png', height = 6, width = 3.23, scale = 2)

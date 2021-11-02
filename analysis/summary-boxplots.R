@@ -25,13 +25,13 @@ s.box <-
   tapirs %>%
   select(region.lab, name, speed.est, age, sex, adult) %>%
   ggplot() +
-  scale_fill_manual('Region', values = pal) +
+  scale_fill_manual('Region', values = pal,  labels = c('Atlantic Forest', 'Pantanal', 'Cerrado')) +
   scale_y_continuous('Speed (km/day)') +
   theme(legend.position = 'none')
 spe.s <- s.box + geom_boxplot(aes(x = sex, y = speed.est, fill = region.lab)) +
   scale_x_discrete(NULL, labels = c('Female', 'Male'))
 spe.a <- s.box + geom_boxplot(aes(x = adult, y = speed.est, fill = region.lab)) +
-  scale_x_discrete(NULL)
+  scale_x_discrete(NULL) 
 
 # tau estimates (only one speed estimate in mata atlantica)
 t.box <-
@@ -49,7 +49,7 @@ hr.a <- t.box + geom_boxplot(aes(x = adult, y = area.est, fill = region.lab)) +
 
 plot_grid(get_legend(spe.s + theme(legend.position = 'top')),
           plot_grid(spe.s, spe.a, hr.s, hr.a, ncol = 2, label_y = 1.08,
-                    labels = c('a.', 'b.', 'c.', 'd.')),
+                    labels = c('a)', 'b)', 'c)', 'd)')),
           ncol = 1, rel_heights = c(0.1, 1))
 
 ggsave('figures/boxplots.png', width = 6.86, height = 4.5, dpi = 300,
