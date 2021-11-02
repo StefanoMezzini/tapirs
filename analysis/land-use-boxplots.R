@@ -114,7 +114,8 @@ p2 <-
   ggplot(tapirs) +
   geom_boxplot(aes(`Habitat type`, Proportion, fill = region.lab)) +
   scale_fill_manual('Region', values = pal) +
-  theme(legend.position = 'top')
+  coord_flip() +
+  theme(legend.position = 'top'); p2
 
 plot_grid(p1, p2, labels = c('a)', 'b)'))
 ggsave('figures/habitat-types.png', width = 6.86, height = 4, dpi = 300,
