@@ -73,8 +73,8 @@ tap <-
                         levels = c('Atlantic forest', 'Pantanal', 'Cerrado',
                                    'Overall')),
     average = if_else(name %in% c('Atlantic forest','Pantanal','Cerrado','Overall'),
-                      'Group Mean', 'Individual') %>%
-      factor(levels = c('Individual', 'Group Mean')))
+                      'Group mean', 'Individual') %>%
+      factor(levels = c('Individual', 'Group mean')))
 
 # 2a) meta() of areas
 p.areas <-
