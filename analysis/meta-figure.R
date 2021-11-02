@@ -15,13 +15,15 @@ pal <- c('#4477AA', '#ff8c00', '#66CCEE', '#009900',
          '#CCBB44', '#EE6677', '#AA3377', '#BBBBBB')
 
 # add correct averages for speeds and tau parameters ###########################
-tapirs <- readRDS('models/tapirs-final.rds')
+tapirs <- readRDS('models/tapirs-final.rds') %>%
+  mutate(region.lab = if_else(region.lab == 'Mata Atlantica', 'Atlantic forest',
+                              region.lab))
 tap <-
   tapirs %>%
   bind_rows(
     bind_cols(
-      name = c('Mata Atlantica', 'Pantanal', 'Cerrado', 'Overall'),
-      region.lab = c('Mata Atlantica', 'Pantanal', 'Cerrado', 'Overall'),
+      name = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall'),
+      region.lab = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall'),
       bind_rows(
         meta(tapirs$model[tapirs$region == 'atlantica'], plot = FALSE)[1, ],
         meta(tapirs$model[tapirs$region == 'pantanal'], plot = FALSE)[1, ],
@@ -65,12 +67,12 @@ tap <-
         select(-tau.pos.sd, -tau.pos.sd, -tau.vel.sd, -tau.vel.sd))) %>%
   mutate(
     name = factor(name,
-                  levels = c(unique(tapirs$name), 'Mata Atlantica',
+                  levels = c(unique(tapirs$name), 'Atlantic forest',
                              'Pantanal', 'Cerrado', 'Overall')),
     region.lab = factor(region.lab,
-                        levels = c('Mata Atlantica', 'Pantanal', 'Cerrado',
+                        levels = c('Atlantic forest', 'Pantanal', 'Cerrado',
                                    'Overall')),
-    average = if_else(name %in% c('Mata Atlantica','Pantanal','Cerrado','Overall'),
+    average = if_else(name %in% c('Atlantic forest','Pantanal','Cerrado','Overall'),
                       'Group Mean', 'Individual') %>%
       factor(levels = c('Individual', 'Group Mean')))
 
@@ -83,10 +85,10 @@ p.areas <-
   geom_point(aes(x = area.est, y = name, shape = average), col = 'white', size = 0.7) +
   scale_shape_manual(element_blank(), values = c(19, 17)) +
   scale_color_manual('Region', values = c(pal[1:3], 'black'),
-                     labels = c('Atlantic Forest', 'Pantanal', 'Cerrado', 'Overall')) +
+                     labels = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall')) +
   scale_y_discrete(limits = rev,
-                   labels = c('Means', 'Cerrado', 'Pantanal', 'Atlantic Forest'),
-                   breaks = c('Mata Atlantica', 'CE_15_KURUKA',
+                   labels = c('Means', 'Cerrado', 'Pantanal', 'Atlantic forest'),
+                   breaks = c('Atlantic forest', 'CE_15_KURUKA',
                               'PA_33_GABRIELA', 'AF_14_JAMESBOND')) +
   labs(x = bquote('Estimated 95% home range area'~(km^2)),
        y = NULL); p.areas
@@ -103,11 +105,10 @@ p.tau.pos <-
              col = 'white', size = 0.7) +
   scale_shape_manual(element_blank(), values = c(19, 17)) +
   scale_color_manual('Region', values = c(pal[1:3], 'black'),
-                     labels = c('Atlantic Forest', 'Pantanal', 'Cerrado', 'Overall')) +
-  labels = c('Atlantic Forest', 'Pantanal', 'Cerrado', 'Overall')) +
+                     labels = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall')) +
   scale_y_discrete(limits = rev,
-                   labels = c('Means', 'Cerrado', 'Pantanal', 'Atlantic Forest'),
-                   breaks = c('Mata Atlantica', 'CE_15_KURUKA',
+                   labels = c('Means', 'Cerrado', 'Pantanal', 'Atlantic forest'),
+                   breaks = c('Atlantic forest', 'CE_15_KURUKA',
                               'PA_33_GABRIELA', 'AF_14_JAMESBOND')) +
   labs(x = 'Range crossing time (days)', y = NULL); p.tau.pos
 
@@ -123,10 +124,10 @@ p.tau.vel <-
              col = 'white', size = 0.7) +
   scale_shape_manual(element_blank(), values = c(19, 17)) +
   scale_color_manual('Region', values = c(pal[1:3], 'black'),
-                     labels = c('Atlantic Forest', 'Pantanal', 'Cerrado', 'Overall')) +
+                     labels = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall')) +
   scale_y_discrete(limits = rev,
-                   labels = c('Means', 'Cerrado', 'Pantanal', 'Atlantic Forest'),
-                   breaks = c('Mata Atlantica', 'CE_15_KURUKA',
+                   labels = c('Means', 'Cerrado', 'Pantanal', 'Atlantic forest'),
+                   breaks = c('Atlantic forest', 'CE_15_KURUKA',
                               'PA_33_GABRIELA', 'AF_14_JAMESBOND')) +
   labs(x = 'Directional persistence timescale (hours)', y = NULL); p.tau.vel
 
@@ -142,13 +143,11 @@ p.speeds <-
              size = 0.7, show.legend = FALSE) +
   scale_shape_manual(element_blank(), values = c(19, 17)) +
   scale_color_manual('Region', values = c(pal[1:3], 'black'),
-                     labels = c('Atlantic Forest', 'Pantanal', 'Cerrado', 'Overall')) +
+                     labels = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall')) +
   scale_y_discrete(limits = rev,
-                   labels = c('Atlantic Forest', 'Pantanal', 'Cerrado', 'Means'),
-                   # breaks = c('AF_17_ESPERTA', 'PA_33_GABRIELA', 'CE_15_KURUKA',
-                   # 'Mata Atlantica')) +
+                   labels = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Means'),
                    breaks = c('AF_17_ESPERTA', 'PA_33_GABRIELA', 'CE_15_KURUKA',
-                              'Mata Atlantica')) +
+                              'Atlantic forest')) +
   labs(x = 'Estimated average speed (km/day)', y = NULL); p.speeds
 
 plot_grid(get_legend(p.areas +
