@@ -279,18 +279,6 @@ pred2 <-
          upr = exp(fit + 1.96 * se.fit))
 
 # regression plot
-p.dirt <-
-  ggplot() +
-  geom_ribbon(aes(dirt, ymin = lwr, ymax = upr), pred, alpha = 0.2) +
-  geom_line(aes(dirt, est), pred) +
-  geom_segment(aes(x = dirt, xend = dirt, y = area.low, yend = area.high,
-                   color = region.lab), tapirs, lwd = 0.5, alpha = 0.5) +
-  geom_point(aes(dirt, area.est, color = region.lab), tapirs, alpha = 0.9) +
-  scale_color_manual('Region', values = pal[1:3],
-                     labels = c('Atlantic forest', 'Pantanal', 'Cerrado')) +
-  labs(x = 'Proportion of exposed soil in the habitat',
-       y = expression('Home Range Area'~(km^2))) +
-  theme(legend.position = 'none', panel.grid = element_blank())
 p.forest <-
   ggplot() +
   geom_ribbon(aes(forest, ymin = lwr, ymax = upr), pred1, alpha = 0.2) +
@@ -304,7 +292,7 @@ p.forest <-
   scale_shape_manual('Outlier', values = c(19, 4), labels = c('No', 'Yes')) +
   scale_color_manual('Region', values = pal[1:3]) +
   labs(x = 'Proportion of forested habitat',
-       y = 'Directional persistence (hours)') +
+       y = 'Directional persistence (hrs)') +
   theme(legend.position = 'none')
 p.water <-
   ggplot() +
@@ -319,14 +307,14 @@ p.water <-
   scale_shape_manual('Outlier', values = c(19, 4), labels = c('No', 'Yes'))+
   scale_color_manual('Region', values = pal[1:3]) +
   labs(x = 'Proportion of water in the habitat',
-       y = 'Directional persistence (hours)') +
+       y = 'Directional persistence (hrs)') +
   theme(legend.position = 'none')
 p <- plot_grid(get_legend(p.forest + theme(legend.position = 'top')),
-               p.dirt, p.forest, p.water,
-               ncol = 1, rel_heights = c(0.2, 1, 1, 1),
-               labels = c(NA, 'a)', 'b)', 'c)')); p
+               p.forest, p.water,
+               ncol = 1, rel_heights = c(0.2, 1, 1),
+               labels = c(NA, 'a)', 'b)')); p
 
-ggsave('figures/lu-regression-tau-v_OUTLIERS.png', height = 6, width = 3.23,
+ggsave('figures/lu-regression-tau-v_OUTLIERS.png', height = 4.125, width = 3.23,
        scale = 2, bg = 'white')
 
 ################################################
