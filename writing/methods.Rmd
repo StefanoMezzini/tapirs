@@ -306,14 +306,14 @@ The Atlantic Forest, Cerrado, and Pantanal vary substantially in habitat composi
 
 We also found that habitat type had little effect on HR area or average individual movement speeds. The best HR area model only accounted for the effect of areas of exposed soil (approximate p-value: 0.023, $R^2_{adj}$ = 0.477; Fig. \@ref(fig:lu-reg-tau-v)a), while no land use types had a significant effect on an animal's average speed. There was very little difference between the AIC of the full model (315.69, df = 10.18, 7 predictors and an intercept) and that of the model with no predictors but the intercept term (310.89, df = 2). However, the directional persistence term ($\tau_v$) was significantly lower for animals who had a higher amount of forested area (Fig. \@ref(fig:lu-reg-tau-v)b) or water (Fig. \@ref(fig:lu-reg-tau-v)c) in their home ranges. Importantly, we note here that the directional persistence estimates were adjusted for the increased location error in the forested areas.
 
-```{r lu-reg-tau-v, fig.cap='Effect of habitat types on lowland tapir movement and space use. Panel a) depicts the estimated mean effect of exposed soil on the tapirs\' estimated home range area. The effects of b) forested area or c) water in a tapir\'s home range on its estimated directional persistence are also shown. Notably, the directional persistence estimates were adjusted for the increased location error in the forested areas.'}
+```{r lu-reg-tau-v, fig.cap='Effect of habitat types on lowland tapir space use and movement. The vertical segments indicate the 95% confidence intervals for the movement parameter estimates. Panel a) depicts the estimated mean effect of exposed soil on the tapirs\' estimated home range area. The effects of b) forested area or c) water in a tapir\'s home range on its estimated directional persistence are also shown. Notably, the directional persistence estimates were adjusted for the increased location error in the forested areas.'}
 knitr::include_graphics('../figures/lu-regression-tau-v_NEW.png')
 ```
 
 
 HFI had no significant effect on lowland tapir home range size (p-value = 0.90; Fig. \@ref(fig:hfi-reg)a), nor average daily movement speed (p-value = 0.53; Fig. \@ref(fig:hfi-reg)b), nor directional persistance (p-value = 0.596, $R^2_{adj} = -0.0184$). A tapir living in a near pristine environment (HFI = 0.004) was estimated as having a home range of 7.77 km$^2$ (95% CI: 2.12 - 28.6) and an average speed of 13.19 km/day (95% CI: 7.82 - 22.1) with a directional persistence of 0.355 hours (95% CI: 0.160 - 0.784), while a tapir from the most altered habitat we monitored (HFI = 0.31) had an estimated home range area of 6.93 km$^2$ (95% CI: 3.36 - 14.3) and an average speed of 10.43 km/day (95% CI: 8.27 - 13.2) with a directional persistence of 0.478 hours (95% CI: 0.335 - 0.683).
 
-```{r hfi-reg, fig.cap='Estimated mean effect of machine-learning-based human footprint index (ml-HFI) on the tapirs\' estimated home range area and estimated average daily speed.'}
+```{r hfi-reg, fig.cap='Estimated mean effect of machine-learning-based human footprint index (ml-HFI) on the tapirs\' estimated home range area and estimated average daily speed. The vertical segments indicate the 95% confidence intervals for the movement parameter estimates.'}
 knitr::include_graphics('../figures/hfi-regressions.png')
 ```
 
@@ -405,7 +405,7 @@ knitr::include_graphics('../figures/habitat-types.png')
 ## Influence of outliers {-}
 
 
-```{r lu-reg-tau-v_OUT, fig.cap='Effect of forested area or water in a tapir\'s home range on its estimated directional persistence. The point indicated as an outlier was removed from the dataset for the purpose of the regression.'}
+```{r lu-reg-tau-v-OUT, fig.cap='Effect of forested area or water in a tapir\'s home range on its estimated directional persistence. The point indicated as an outlier was removed from the dataset for the purpose of the regression.'}
 knitr::include_graphics('../figures/lu-regression-tau-v.png')
 ```
 

@@ -16,8 +16,9 @@ pal <- c('#4477AA', '#ff8c00', '#66CCEE', '#009900',
          '#CCBB44', '#EE6677', '#AA3377', '#BBBBBB')
 
 tapirs <- readRDS('models/tapirs-final.rds') %>% # tapir data
-  mutate(tau.velocity.est = tau.velocity.est / 60 / 60) # from seconds to hours
-sa <- filter(spData::world, continent == 'South America') # south america layer
+  mutate(tau.velocity.est = tau.velocity.est / 60 / 60, # from seconds to hours
+         tau.velocity.low = tau.velocity.low / 60 / 60,
+         tau.velocity.high = tau.velocity.high / 60 / 60)
 
 # hfi regressions ####
 hfi.raster <- raster('data/hfi-layers/ml_hfi_v1_2019.nc') # HFI
@@ -29,8 +30,10 @@ extract(hfi.raster, as.sf(tapirs$akde[[5]])) # [[1]]=lwr, [[2]]=est, [[3]]=upr
 tapirs <-
   mutate(tapirs,
          region = factor(region), # need factors for GAMs
-         region.lab = factor(region.lab,
-                             levels = c('Mata Atlantica','Pantanal','Cerrado')),
+         region.lab = if_else(region.lab == 'Mata Atlantica',
+                              'Atlantic forest',
+                              region.lab) %>%
+           factor(levels = c('Atlantic forest','Pantanal','Cerrado')),
          hfi.mean = map_dbl(1:N,
                             function(i)
                               extract(hfi.raster,
@@ -38,7 +41,7 @@ tapirs <-
                               mean(na.rm = TRUE)),
          hr.size = map_dbl(akde,
                            function(a) summary(a)$CI[2]))
-unique(warnings())
+unique(warnings()) # warning on change of projection is ok
 
 # hfi on hr size ####
 # Gamma GLM regression
@@ -67,10 +70,13 @@ hfi.hr <-
   ggplot() +
   geom_ribbon(aes(hfi.mean, ymin = lwr, ymax = upr), pred0, alpha = 0.2) +
   geom_line(aes(hfi.mean, est), pred0) +
+  geom_segment(aes(x = hfi.mean, xend = hfi.mean, y = area.low,
+                   yend = area.high, color = region.lab), tapirs, lwd = 0.5,
+               alpha = 0.5) +
   geom_point(aes(hfi.mean, hr.size, color = region.lab), tapirs, alpha = 0.9) +
   scale_color_manual('Region', values = pal[1:3]) +
   labs(x = 'ml-HFI', y = expression('Home Range Area'~(km^2))) +
-  theme(legend.position = 'top')
+  theme(legend.position = 'top'); hfi.hr
 
 AIC(m0, m1)
 
@@ -103,6 +109,9 @@ hfi.speed <-
   ggplot(tapirs) +
   geom_ribbon(aes(hfi.mean, ymin = lwr, ymax = upr), pred0, alpha = 0.2) +
   geom_line(aes(hfi.mean, est), pred0) +
+  geom_segment(aes(x = hfi.mean, xend = hfi.mean, y = speed.low,
+                   yend = speed.high, color = region.lab), lwd = 0.5,
+               alpha = 0.5) +
   geom_point(aes(hfi.mean, speed.est, color = region.lab), alpha = 0.9)+
   scale_color_manual('Region', values = pal[1:3]) +
   labs(x = 'ml-HFI', y = 'Average speed (km/day)') +
@@ -111,12 +120,25 @@ hfi.speed <-
 # without Mata Atlantica
 filter(tapirs, region != 'atlantica') %>%
   ggplot() +
-  geom_smooth(aes(hfi.mean, speed.est), method = 'lm', color = 'black', lwd = 1,
-              na.rm = TRUE) +
+  geom_ribbon(aes(hfi.mean, ymin = lwr, ymax = upr),
+              filter(pred0, hfi.mean >= 0.138), alpha = 0.2) +
+  geom_line(aes(hfi.mean, est), filter(pred0, hfi.mean >= 0.138)) +
+  geom_segment(aes(x = hfi.mean, xend = hfi.mean, y = speed.low,
+                   yend = speed.high, color = region.lab), lwd = 0.5,
+               alpha = 0.5) +
   geom_point(aes(hfi.mean, speed.est, color = region.lab), alpha = 0.9)+
   scale_color_manual('Region', values = pal[2:3]) +
   labs(x = 'ml-HFI', y = expression('Home Range Area'~(km^2))) +
   theme(legend.position = 'top')
+
+# save plot
+plot_grid(get_legend(hfi.hr),
+          plot_grid(hfi.hr + theme(legend.position = 'none'),
+                    hfi.speed + theme(legend.position = 'none'),
+                    ncol = 1, labels = c('a)', 'b)')),
+          ncol = 1, rel_heights = c(0.05, 1))
+ggsave('figures/hfi-regressions.png', height = 4, width = 3.23, scale = 1.5,
+       bg = 'white')
 
 gam(speed.est ~ hfi.mean,
     family = Gamma('log'),
