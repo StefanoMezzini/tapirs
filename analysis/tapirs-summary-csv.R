@@ -39,7 +39,6 @@ tapirs <-
                          mean(na.rm = TRUE)),
     # keep all habitat type columns
     total,
-    `?`,
     forest,
     floodplain,
     pasture,
@@ -49,7 +48,8 @@ tapirs <-
     savannah,
     water,
     urban,
-    plantation)
+    plantation,
+    other = `?`)
 
 tapirs
 
