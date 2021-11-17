@@ -15,9 +15,11 @@ tapirs <-
   readRDS('models/tapirs-land-use.rds') %>%
   transmute(
     name, # tapir ID
+    sex,
     age, # Adult, sub-adult, juvenile
-    adult,
     calibrated = calib, # was location instrument calibrated? TRUE/FALSE
+    median.longitude = map_dbl(data, \(x) median(x$longitude)),
+    median.latitude = map_dbl(data, \(x) median(x$latitude)),
     longitude.df = x.df, # home range degrees of freedom 
     latitude.df = y.df,
     adult, # Yes/No
@@ -29,20 +31,26 @@ tapirs <-
                     'Atlantic forest', as.character(region.lab)),
     area.est, area.low, area.high, # HR size estimate and 95% CI
     speed.est, speed.low, speed.high, # average speed estimate and 95% CI
-    tau.position.est, tau.position.low, tau.position.high, # pos autocorrelation
-    tau.velocity.est, tau.velocity.low, tau.velocity.high, # vel autocorrelation
+    # parameter units follow the units in figures/meta.png
+    tau.position.est = tau.position.est / 60 / 60 / 24, # seconds to days
+    tau.position.low = tau.position.low / 60 / 60 / 24,
+    tau.position.high = tau.position.high / 60 / 60 / 24,
+    tau.velocity.est = tau.velocity.est / 60 / 60, # seconds to hours
+    tau.velocity.low = tau.velocity.low / 60 / 60,
+    tau.velocity.high = tau.velocity.high / 60 / 60,
     hfi.mean = map_dbl(1:74, # average human footprint index
                        function(i)
                          # take HR estimate and extract its mean HFI
                          raster::extract(hfi.raster, as.sf(akde[[i]]))[[2]] %>%
                          suppressWarnings() %>% # warns that projection changed
                          mean(na.rm = TRUE)),
-    # keep all habitat type columns
-    total,
+    # keep all relevant habitat type columns
+    total.cells = total,
+    cell.area = if_else(biome == 'Atlantic forest', 30^2, 10^2),
+    total.area = total.cells * cell.area,
     forest,
     floodplain,
     pasture,
-    headquarters,
     crop,
     dirt,
     savannah,
