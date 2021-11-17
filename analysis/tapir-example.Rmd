@@ -21,7 +21,7 @@ theme_set(theme_bw())
 
 tapirs <-
   read.csv('../data/1_ATLANTICFOREST_11.csv') %>%
-  as.telemetry(timeformat = '%Y-%m-%d %H:%M:%S')
+  as.telemetry(timeformat = '%Y-%m-%d %H:%M')
 
 joana <- tapirs[['AF_01_JOANA']] # take the first tapir
 
