@@ -107,8 +107,8 @@ pred3 <-
 # regression plot
 hfi.speed <-
   ggplot(tapirs) +
-  geom_ribbon(aes(hfi.mean, ymin = lwr, ymax = upr), pred0, alpha = 0.2) +
-  geom_line(aes(hfi.mean, est), pred0) +
+  geom_ribbon(aes(hfi.mean, ymin = lwr, ymax = upr), pred3, alpha = 0.2) +
+  geom_line(aes(hfi.mean, est), pred3) +
   geom_segment(aes(x = hfi.mean, xend = hfi.mean, y = speed.low,
                    yend = speed.high, color = region.lab), lwd = 0.5,
                alpha = 0.5) +
