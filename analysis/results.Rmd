@@ -1,0 +1,251 @@
+---
+title: "Untitled"
+author: "Stefano Mezzini"
+date: "11/01/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE}
+library('dplyr')     # for data wrangling
+library('purrr')     # for functional programming
+library('mgcv')      # for fitting GAMs
+library('ctmm')      # for animal movement stuff
+library('metafor')   # for meta-analysis
+N <- 74 # number of tapirs
+
+tapirs <- readRDS('../models/tapirs-final.rds') # tapir data
+
+# categories with 1 individual -> group ages together
+table(tapirs$age)
+table(tapirs$adult)
+
+# home range estimates
+meta(tapirs$model, plot = FALSE) %>% round(2)
+
+d.hr <-
+  escalc(measure = 'MN', # regression on the (untransformed) mean
+         mi = area.est, # estimates
+         sdi = map_dbl(1:N, # standard deviations
+                       function(i)
+                         ctmm:::area.covm(tapirs$model[[i]]$sigma)) %>% sqrt(),
+         ni = map_dbl(tapirs$model, ctmm:::DOF.area), # degrees of freedom
+         data = tapirs)
+summary(rma(yi ~ 1, vi, data = d.hr, method = 'REML'))
+```
+
+The overall mean home range estimate is 8.31 km^2^ with CI (6.53, 10.4) km^2^.
+
+```{r}
+range(tapirs$area.est) %>% round(digits = 1)
+```
+
+The range in home range area estimates is 1-29.7 km^2^.
+
+```{r}
+round(range(tapirs$tau.position.est, na.rm = TRUE) / 60 / 60 / 24, 2)
+```
+
+The range in range crossing time is 0.05-12.8 days.
+
+# Change mean estimates (now using GLMs instead of normal CIs)
+
+```{r, message=FALSE}
+est <- function(y, parameter = c('mean', 'lwr', 'upr')) {
+  if(sum(!is.na(y)) > 2) { # if there's at least 2 observations
+    # fit a Gamma GLM with only an intercept to estimate the group-level mean
+    m <- gam(y ~ 1,
+             family = Gamma(link = 'log'),
+             method = 'REML')
+    
+    if(length(parameter) > 1) stop('Specify a single parameter.\n')
+    
+    pred <- predict(m, newdata = tibble(c = 1), se.fit = TRUE, scale = 'link') %>%
+      as.data.frame() %>%
+      mutate(lwr = exp(fit - 1.96 * se.fit),
+             mean = exp(fit),
+             upr = exp(fit + 1.96 * se.fit))
+    pred[1, parameter]
+  } else {NA_real_}
+}
+
+tap <-
+  bind_rows(
+    bind_cols(
+      name = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall'),
+      region.lab = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall'),
+      bind_rows(
+        meta(tapirs$model[tapirs$region == 'atlantica'], plot = FALSE)[1, ],
+        meta(tapirs$model[tapirs$region == 'pantanal'], plot = FALSE)[1, ],
+        meta(tapirs$model[tapirs$region == 'cerrado'], plot = FALSE)[1, ],
+        meta(tapirs$model, plot = FALSE)[1, ]) %>%
+        rename(area.low = low, area.est = est, area.high = high),
+      # regional estimates
+      group_by(tapirs, region) %>%
+        summarize(tau.position.e = est(tau.position.est, 'mean'),
+                  tau.position.low = est(tau.position.est, 'lwr'),
+                  tau.position.high = est(tau.position.est, 'upr'),
+                  tau.velocity.e = est(tau.velocity.est, 'mean'),
+                  tau.velocity.low = est(tau.velocity.est, 'lwr'),
+                  tau.velocity.high = est(tau.velocity.est, 'upr'),
+                  speed.e = est(speed.est, 'mean'),
+                  speed.low = est(speed.est, 'lwr'),
+                  speed.high = est(speed.est, 'upr')) %>%
+        rename(tau.position.est = tau.position.e,
+               tau.velocity.est = tau.velocity.e,
+               speed.est = speed.e) %>%
+        bind_rows(
+          tapirs %>%
+            summarize(tau.position.est = est(tapirs$tau.position.est, 'mean'),
+                      tau.position.low = est(tapirs$tau.position.est, 'lwr'),
+                      tau.position.high = est(tapirs$tau.position.est, 'upr'),
+                      tau.velocity.est = est(tapirs$tau.velocity.est, 'mean'),
+                      tau.velocity.low = est(tapirs$tau.velocity.est, 'lwr'),
+                      tau.velocity.high = est(tapirs$tau.velocity.est, 'upr'),
+                      speed.est = est(tapirs$speed.est, 'mean'),
+                      speed.low = est(tapirs$speed.est, 'lwr'),
+                      speed.high = est(tapirs$speed.est, 'upr'))))) %>%
+  mutate(
+    # convert from secods to days
+    tau.position.est = tau.position.est / (60^2 * 24),
+    tau.position.low = tau.position.low / (60^2 * 24),
+    tau.position.high = tau.position.high / (60^2 * 24)) %>%
+  select(region.lab, area.est, area.low, area.high, tau.position.est, tau.position.low,
+         tau.position.high, tau.velocity.est, tau.velocity.low, tau.velocity.high, speed.est,
+         speed.low, speed.high)
+knitr::kable(t(tap)) # transpose to make readable
+```
+
+# Can we use the estimates from above instead of using escalc?
+
+```{r, eval = FALSE}
+# tau_p
+d.tp <-
+  escalc(measure = 'MN', # regression on the (untransformed) mean
+         mi = tau.position.est,
+         sdi = map_dbl(1:N,
+                       function(i)
+                         diag(tapirs$model[[i]]$COV)['tau position']) %>% sqrt(),
+         ni = map_dbl(tapirs$model, ctmm:::DOF.area),
+         data = tapirs)
+
+# may not be able to obtain stable results due to small sample sizes
+# estimates are in seconds instead of days
+summary(rma(yi ~ region, vi, data = d.tp, method = 'REML'))
+summary(rma(yi ~ sex, vi, data = d.tp, method = 'REML'))
+summary(rma(yi ~ adult, vi, data = d.tp, method = 'REML'))
+```
+
+# Broken:
+
+```{r, eval = FALSE}
+# tau_v
+d.tv <-
+  escalc(measure = 'MN',
+         mi = tau.velocity.est,
+         sdi = map_dbl(1:N,
+                       function(i)
+                         speed(tapirs$model[[i]]$COV)['tau velocity']) %>%
+           sqrt(),
+         ni = map_dbl(1:N,
+                      function(i)
+                        summary(tapirs$model[[i]])$DOF['speed'],
+         data = tapirs))
+
+summary(rma(yi ~ 1, vi, data = d.tv, method = 'REML'))
+
+# speed
+d.speed <-
+  escalc(measure = 'MN',
+         mi = speed.est,
+         sdi = map_dbl(1:N,
+                       function(i) i) %>% sqrt(),
+         ni = map_dbl(1:N,
+                      function(i)
+                        summary(tapirs$model[[i]])$DOF['speed'],
+         data = tapirs))
+
+summary(rma(yi ~ 1, vi, data = d.speed, method = 'REML'))
+summary(rma(yi ~ adult, vi, data = d.speed, method = 'REML'))
+summary(rma(yi ~ sex, vi, data = d.speed, method = 'REML'))
+```
+
+# This part works:
+
+```{r}
+# same tests with mgcv::gam ####################################################
+m.speed.sex <- gam(speed.est ~ sex,
+                   family = Gamma('log'),
+                   data = tapirs,
+                   method = 'REML')
+m.speed.age <- gam(speed.est ~ adult,
+                   family = Gamma('log'),
+                   data = tapirs,
+                   method = 'REML')
+# model summaries
+summary(m.speed.sex)
+summary(m.speed.age)
+
+# predictions
+tibble(Sex = c('MALE', 'FEMALE'),
+       bind_cols(predict(m.speed.sex, tibble(sex = Sex), se.fit = TRUE))) %>%
+  mutate(est = round(exp(fit), 2),
+         lwr = round(exp(fit - 1.96 * se.fit), 2),
+         upr = round(exp(fit + 1.96 * se.fit), 2))
+tibble(Adult = c('Yes', 'No'),
+       bind_cols(predict(m.speed.age, tibble(adult = Adult), se.fit = TRUE))) %>%
+  mutate(est = round(exp(fit), 2),
+         lwr = round(exp(fit - 1.96 * se.fit), 2),
+         upr = round(exp(fit + 1.96 * se.fit), 2))
+```
+
+Estimate differences in home range sizes using `ctmm::meta()`:
+
+```{r}
+# by sex
+meta(list(female = filter(tapirs, sex == 'FEMALE')$akde,
+          male = filter(tapirs, sex == 'MALE')$akde),
+     plot = FALSE)
+
+meta(filter(tapirs, sex == 'FEMALE')$akde, plot = FALSE) # CIs for females
+meta(filter(tapirs, sex == 'MALE')$akde, plot = FALSE) # CIs for males
+
+# by age group
+meta(list(female = filter(tapirs, adult == 'No')$akde,
+          male = filter(tapirs, adult == 'Yes')$akde),
+     plot = FALSE)
+
+meta(filter(tapirs, adult == 'No')$akde, plot = FALSE) # CIs for sub-adults
+meta(filter(tapirs, adult == 'Yes')$akde, plot = FALSE) # CIs for adults
+```
+
+# Difference in home range estimates by sex and age
+
+```{r}
+m.hr.sex <- gam(area.est ~ sex,
+                family = Gamma('log'),
+                data = tapirs,
+                method = 'REML')
+m.hr.age <- gam(area.est ~ adult,
+                family = Gamma('log'),
+                data = tapirs,
+                method = 'REML')
+# model summaries
+summary(m.hr.sex)
+summary(m.hr.age)
+
+# predictions
+tibble(Sex = c('MALE', 'FEMALE'),
+       bind_cols(predict(m.hr.sex, tibble(sex = Sex), se.fit = TRUE))) %>%
+  mutate(est = round(exp(fit), 2),
+         lwr = round(exp(fit - 1.96 * se.fit), 2),
+         upr = round(exp(fit + 1.96 * se.fit), 2))
+tibble(Adult = c('Yes', 'No'),
+       bind_cols(predict(m.hr.age, tibble(adult = Adult), se.fit = TRUE))) %>%
+  mutate(est = round(exp(fit), 2),
+         lwr = round(exp(fit - 1.96 * se.fit), 2),
+         upr = round(exp(fit + 1.96 * se.fit), 2))
+```
