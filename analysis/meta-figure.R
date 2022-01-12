@@ -1,4 +1,5 @@
 library('ctmm')    # using the github version (0.6.1)
+library('mgcv')    # for summary statistics (mean and CIs) using Gamma GAMs
 library('dplyr')   # for data wrangling
 library('ggplot2') # for plotting
 library('cowplot') # for plot grids
@@ -18,6 +19,27 @@ pal <- c('#4477AA', '#ff8c00', '#66CCEE', '#009900',
 tapirs <- readRDS('models/tapirs-final.rds') %>%
   mutate(region.lab = if_else(region.lab == 'Mata Atlantica', 'Atlantic forest',
                               region.lab))
+
+est <- function(y, parameter = c('mean', 'lwr', 'upr')) {
+  
+  if(sum(!is.na(y)) > 2) { # if there's at least 2 observations
+    
+    # fit a Gamma GLM with only an intercept to estimate the group-level mean
+    m <- gam(y ~ 1,
+             family = Gamma(link = 'log'),
+             method = 'REML')
+    
+    if(length(parameter) > 1) stop('Specify a single parameter.\n')
+    
+    pred <- predict(m, newdata = tibble(c = 1), se.fit = TRUE, scale = 'link') %>%
+      as.data.frame() %>%
+      mutate(lwr = exp(fit - 1.96 * se.fit),
+             mean = exp(fit),
+             upr = exp(fit + 1.96 * se.fit))
+    pred[1, parameter]
+  } else {NA_real_}
+}
+
 tap <-
   tapirs %>%
   bind_rows(
@@ -31,41 +53,33 @@ tap <-
         meta(tapirs$model, plot = FALSE)[1, ]) %>%
         rename(area.low = low, area.est = est, area.high = high),
       group_by(tapirs, region) %>%
-        summarize(tau.pos.est = mean(tau.position.est, na.rm = TRUE),
-                  tau.pos.sd = sd(tau.position.est, na.rm = TRUE) / sqrt(n()),
-                  tau.vel.est = mean(tau.velocity.est, na.rm = TRUE),
-                  tau.vel.sd = sd(tau.velocity.est, na.rm = TRUE) / sqrt(n()),
-                  spe.est = mean(speed.est, na.rm = TRUE),
-                  spe.sd = sd(speed.est, na.rm = TRUE) / sqrt(n())) %>%
-        rename(tau.position.est = tau.pos.est,
-               tau.velocity.est = tau.vel.est,
-               speed.est = spe.est) %>%
-        mutate(tau.position.low = tau.position.est - 1.96 * tau.pos.sd,
-               tau.position.high = tau.position.est + 1.96 * tau.pos.sd,
-               tau.velocity.low = tau.velocity.est - 1.96 * tau.vel.sd,
-               tau.velocity.high = tau.velocity.est + 1.96 * tau.vel.sd,
-               speed.low = speed.est - 1.96 * spe.sd,
-               speed.high = speed.est + 1.96 * spe.sd) %>%
+        summarize(tau.position.e = est(tau.position.est, 'mean'),
+                  tau.position.low = est(tau.position.est, 'lwr'),
+                  tau.position.high = est(tau.position.est, 'upr'),
+                  tau.velocity.e = est(tau.velocity.est, 'mean'),
+                  tau.velocity.low = est(tau.velocity.est, 'lwr'),
+                  tau.velocity.high = est(tau.velocity.est, 'upr'),
+                  speed.e = est(speed.est, 'mean'),
+                  speed.low = est(speed.est, 'lwr'),
+                  speed.high = est(speed.est, 'upr')) %>%
+        rename(tau.position.est = tau.position.e,
+               tau.velocity.est = tau.velocity.e,
+               speed.est = speed.e) %>%
         bind_rows(
-          group_by(tapirs) %>%
-            summarize(tau.pos.est = mean(tau.position.est, na.rm = TRUE),
-                      tau.pos.sd = sd(tau.position.est, na.rm = TRUE)/sqrt(n()),
-                      tau.vel.est = mean(tau.velocity.est, na.rm = TRUE),
-                      tau.vel.sd = sd(tau.velocity.est, na.rm = TRUE)/sqrt(n()),
-                      spe.est = mean(speed.est, na.rm = TRUE),
-                      spe.sd = sd(speed.est, na.rm = TRUE) / sqrt(n())) %>%
-            rename(tau.position.est = tau.pos.est,
-                   tau.velocity.est = tau.vel.est,
-                   speed.est = spe.est) %>%
-            mutate(tau.position.low = tau.position.est - 1.96 * tau.pos.sd,
-                   tau.position.high = tau.position.est + 1.96 * tau.pos.sd,
-                   tau.velocity.low = tau.velocity.est - 1.96 * tau.vel.sd,
-                   tau.velocity.high = tau.velocity.est + 1.96 * tau.vel.sd,
-                   speed.low = speed.est - 1.96 * spe.sd,
-                   speed.high = speed.est + 1.96 * spe.sd) %>%
-            select(-tau.pos.sd, -tau.vel.sd, -spe.sd)) %>%
-        select(-tau.pos.sd, -tau.pos.sd, -tau.vel.sd, -tau.vel.sd))) %>%
+          tapirs %>%
+            summarize(tau.position.est = est(tapirs$tau.position.est, 'mean'),
+                      tau.position.low = est(tapirs$tau.position.est, 'lwr'),
+                      tau.position.high = est(tapirs$tau.position.est, 'upr'),
+                      tau.velocity.est = est(tapirs$tau.velocity.est, 'mean'),
+                      tau.velocity.low = est(tapirs$tau.velocity.est, 'lwr'),
+                      tau.velocity.high = est(tapirs$tau.velocity.est, 'upr'),
+                      speed.est = est(tapirs$speed.est, 'mean'),
+                      speed.low = est(tapirs$speed.est, 'lwr'),
+                      speed.high = est(tapirs$speed.est, 'upr'))))) %>%
   mutate(
+    tau.position.est = tau.position.est / (60^2 * 24),
+    tau.position.low = tau.position.low / (60^2 * 24),
+    tau.position.high = tau.position.high / (60^2 * 24),
     name = factor(name,
                   levels = c(unique(tapirs$name), 'Atlantic forest',
                              'Pantanal', 'Cerrado', 'Overall')),
@@ -96,12 +110,12 @@ p.areas <-
 # 2b) home range crossing times
 p.tau.pos <-
   ggplot(tap) +
-  geom_segment(aes(x = tau.position.low / (60^2 * 24),
-                   xend = tau.position.high / (60^2 * 24), y = name, yend = name,
+  geom_segment(aes(x = tau.position.low,
+                   xend = tau.position.high, y = name, yend = name,
                    color = region.lab), lwd = 2) +
-  geom_point(aes(x = tau.position.est / (60^2 * 24), y = name, shape = average),
+  geom_point(aes(x = tau.position.est, y = name, shape = average),
              col = 'black', size = 1.2) +
-  geom_point(aes(x = tau.position.est / (60^2 * 24), y = name, shape = average),
+  geom_point(aes(x = tau.position.est, y = name, shape = average),
              col = 'white', size = 0.7) +
   scale_shape_manual(element_blank(), values = c(19, 17)) +
   scale_color_manual('Region', values = c(pal[1:3], 'black'),
@@ -163,4 +177,5 @@ plot_grid(get_legend(p.areas +
                     ncol = 2, byrow = TRUE, label_y = 1.04),
           ncol = 1, rel_heights = c(0.05, 1))
 
-ggsave('figures/meta.png', width = 6.86, height = 8, scale = 1.5, bg = 'white')
+# save the final figure
+# ggsave('figures/meta.png', width = 6.86, height = 8, scale = 1.5, bg = 'white')
