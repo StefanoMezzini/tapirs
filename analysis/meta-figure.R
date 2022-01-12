@@ -77,6 +77,7 @@ tap <-
                       speed.low = est(tapirs$speed.est, 'lwr'),
                       speed.high = est(tapirs$speed.est, 'upr'))))) %>%
   mutate(
+    # convert from secods to days
     tau.position.est = tau.position.est / (60^2 * 24),
     tau.position.low = tau.position.low / (60^2 * 24),
     tau.position.high = tau.position.high / (60^2 * 24),
