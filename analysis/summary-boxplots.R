@@ -20,18 +20,22 @@ tapirs <- readRDS('models/tapirs-final.rds') %>%
                        levels = c(unique(name), 'Atlantic forest',
                                   'Pantanal', 'Cerrado', 'Overall')),
          region.lab = if_else(region.lab == 'Mata Atlantica', 'Atlantic forest',
-                              region.lab) %>%
-           factor(levels = c('Atlantic forest', 'Pantanal', 'Cerrado'))) %>%
-  # select(region.lab, name, speed.est, area.est, age, sex, adult) %>%
-  mutate(sex_r = interaction(sex, region.lab, lex.order = TRUE),
-         adult_r = interaction(adult, region.lab, lex.order = TRUE))
+                              region.lab),
+         sex_r = paste(sex, region.lab, sep = '_') %>%
+           factor(levels = c('Female_Atlantic forest', 'Female_Pantanal',
+                             'Female_Cerrado', 'Male_Atlantic forest',
+                             'Male_Pantanal', 'Male_Cerrado')),
+         adult_r = paste(adult, region.lab, sep = '_') %>%
+           factor(levels = c('Adult_Atlantic forest', 'Adult_Pantanal',
+                             'Adult_Cerrado', 'Young_Atlantic forest',
+                             'Young_Pantanal', 'Young_Cerrado')))
 
 # means and CIs
-m.speed.sex <- gam(speed.est ~ sex + region.lab,
+m_speed_sex <- gam(speed.est ~ sex + region.lab,
                    family = Gamma('log'),
                    data = tapirs,
                    method = 'REML')
-m.speed.age <- gam(speed.est ~ adult + region.lab,
+m_speed_age <- gam(speed.est ~ adult + region.lab,
                    family = Gamma('log'),
                    data = tapirs,
                    method = 'REML')
@@ -41,9 +45,10 @@ m.speed.age <- gam(speed.est ~ adult + region.lab,
 summ_ss <-
   expand_grid(sex = unique(tapirs$sex),
               region.lab = unique(tapirs$region.lab)) %>%
-  tibble(bind_cols(predict(m.speed.sex, se.fit = TRUE,
+  tibble(bind_cols(predict(m_speed_sex, se.fit = TRUE,
                            tibble(sex = sex, region.lab = region.lab)))) %>%
-  mutate(sex_r = interaction(sex, region.lab, lex.order = TRUE),
+  mutate(sex_r = paste(sex, region.lab, sep = '_') %>%
+           factor(levels = levels(tapirs$sex_r)),
          est = round(exp(fit), 2),
          lwr = round(exp(fit - 1.96 * se.fit), 2),
          upr = round(exp(fit + 1.96 * se.fit), 2))
@@ -51,9 +56,10 @@ summ_ss <-
 summ_sa <-
   expand_grid(adult = unique(tapirs$adult),
               region.lab = unique(tapirs$region.lab)) %>%
-  tibble(bind_cols(predict(m.speed.age, se.fit = TRUE,
+  tibble(bind_cols(predict(m_speed_age, se.fit = TRUE,
                            tibble(adult = adult, region.lab = region.lab)))) %>%
-  mutate(adult_r = interaction(adult, region.lab, lex.order = TRUE),
+  mutate(adult_r = paste(adult, region.lab, sep = '_') %>%
+           factor(levels = levels(tapirs$adult_r)),
          est = round(exp(fit), 2),
          lwr = round(exp(fit - 1.96 * se.fit), 2),
          upr = round(exp(fit + 1.96 * se.fit), 2))
@@ -78,9 +84,11 @@ hr_estimates <- function(REGION, SEX = NA, ADULT = NA) {
     mutate(region.lab = REGION, sex = SEX, adult = ADULT)
   
   if(! is.na(SEX)) {
-    d <- d %>% mutate(sex_r = paste(sex, region.lab, sep = '.'))
+    d <- d %>% mutate(sex_r = paste(sex, region.lab, sep = '_') %>%
+                        factor(levels = levels(tapirs$sex_r)))
   } else {
-    d <- d %>% mutate(adult_r = paste(adult, region.lab, sep = '.'))
+    d <- d %>% mutate(adult_r = paste(adult, region.lab, sep = '_') %>%
+                        factor(levels = levels(tapirs$adult_r)))
   }
 }
 
@@ -99,55 +107,62 @@ summ_aa <-
                                    \(x, y) hr_estimates(REGION = x, ADULT = y))))
 
 # function for summary plots ----
-summary_plot <- function(y = 'speed', group = c('sex', 'adult')) {
+summary_plot <- function(Y, group = c('sex', 'adult')) {
   
   x <- paste0(group, '_r')
-  summarized <- get(paste0('summ_', substr(y, 1, 1), substr(x, 1, 1)))
+  summarized <- get(paste0('summ_', substr(Y, 1, 1), substr(x, 1, 1)))
   
   if(length(group) > 1) stop('Select only one group.')
   
   colnames(tapirs)[grepl(x, colnames(tapirs))] <- 'x'
-  colnames(tapirs)[grepl(y, colnames(tapirs))] <- 'y'
+  colnames(tapirs)[grepl(Y, colnames(tapirs))] <- 'y'
   colnames(summarized)[grepl(x, colnames(summarized))] <- 'x'
-  
-  rm(y)
   
   p <- 
     ggplot(tapirs) +
-    
-    # data
-    geom_jitter(aes(x, y, color = region.lab), shape = 4, width = 0.2, size=2) +
     # CIs
     geom_errorbar(aes(x, ymin = lwr, ymax = upr, color = region.lab),
-                  summarized, lwd = 3, width = 0) +
+                  summarized, lwd = 3, width = 0, alpha = 0.5) +
+    # data
+    geom_jitter(aes(x, y, color = region.lab), shape = 4, width = 0.2, size = 2,
+                na.rm = TRUE) +
     # means
     geom_point(aes(x, est), summarized, size = 2) +
     geom_point(aes(x, est), summarized, color = 'white') +
     
     # theme
     scale_fill_manual('Region', values = pal, aesthetics = c('fill', 'color'),
-                      labels = c('Atlantic forest', 'Pantanal', 'Cerrado')) +
-    scale_y_continuous('Speed (km/day)') +
+                      breaks = c('Atlantic forest', 'Pantanal', 'Cerrado')) +
     theme(legend.position = 'none')
   
   # add appropriate labels depending on grouping
   if(group == 'sex') {
-    p + scale_x_discrete(NULL, breaks = c('Female.Pantanal', 'Male.Pantanal'),
-                         labels = c('Female', 'Male'))
+    p <- p +
+      scale_x_discrete(NULL, breaks = c('Female_Pantanal', 'Male_Pantanal'),
+                       labels = c('Female', 'Male'))
   } else {
-    p + scale_x_discrete(NULL, breaks = c('Adult.Pantanal', 'Young.Pantanal'),
-                         labels = c('Adult', 'Young'))
+    p <- p +
+      scale_x_discrete(NULL, breaks = c('Adult_Pantanal', 'Young_Pantanal'),
+                       labels = c('Adult', 'Young'))
+  }
+  
+  # add appropriate y label
+  if(Y == 'speed.est') {
+    p + scale_y_continuous('Speed (km/day)')
+  } else {
+    p + scale_y_continuous(expression(Home~range~(km^2)))
   }
 }
 
 # summary plots ----
-spe.s <- summary_plot(group = 'sex', y = 'speed.est'); spe.s
-spe.a <- summary_plot(group = 'adult', y = 'speed.est'); spe.a
-hr.s <- summary_plot(group = 'sex', y = 'area.est'); hr.s
-hr.a <- summary_plot(group = 'adult', y = 'area.est'); hr.a
+spe_s <- summary_plot(group = 'sex', Y = 'speed.est')
+spe_a <- summary_plot(group = 'adult', Y = 'speed.est')
+hr_s <- summary_plot(group = 'sex', Y = 'area.est')
+hr_a <- summary_plot(group = 'adult', Y = 'area.est')
 
-plot_grid(get_legend(spe.s + theme(legend.position = 'top')),
-          plot_grid(spe.s, spe.a, hr.s, hr.a, ncol = 2, label_y = 1.08,
+plot_grid(get_legend(spe_s +
+                       theme(legend.position = 'top')),
+          plot_grid(spe_s, spe_a, hr_s, hr_a, ncol = 2, label_y = 1.08,
                     labels = c('a)', 'b)', 'c)', 'd)')),
           ncol = 1, rel_heights = c(0.1, 1))
 
