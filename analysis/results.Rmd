@@ -1,43 +1,67 @@
 ---
-title: "Appendix S2 - R Scripts for reproducing the results presented in the main text"
+title: "Appendix - R Scripts for reproducing the results presented in the main text"
 author: "EP Medici, S Mezzini, CH Fleming, JM Calabrese, MJ Noonan"
-date: "11/01/2022"
+date: "`r Sys.Date()`"
 output:
   pdf_document:
       latex_engine: xelatex
+      number_sections: true
+      toc: true
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r chunk-options, include=FALSE}
+# suppress warnings from ggplot()
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+
+# allows changing character size of the output to "small"
+# see https://stackoverflow.com/questions/25646333/code-chunk-font-size-in-rmarkdown-with-knitr-and-latex
+def.chunk.hook <- knitr::knit_hooks$get("chunk")
+knitr::knit_hooks$set(chunk = function(x, options) {
+  x <- def.chunk.hook(x, options)
+  ifelse(test = options$size != "normalsize",
+         yes = paste0("\n \\", options$size,"\n\n", x, "\n\n \\normalsize"),
+         no = x)
+})
 ```
 
 In this appendix we provide details on the analyses and R code used to generate all of the results presented in the main text. For full details on these analyses see the github repository associated with this manuscript at: https://github.com/StefanoMezzini/tapirs.
 
+Section 1, *Pre-analysis setup*, attaches the packages needed for the analysis and imports the main dataset.
+
+Section 2, *Summary statistics for movement and space use parameters*, shows how results were obtained for each section, following the order in which results are presented in the manuscript.
+
+Section 3, *Figures*, shows how figures 2-6 were created (with minor changes for aesthetic purposes and ease of readability). Figure 1 is not recreated here because the final version was created in Photoshop. The code to create the figure's components can be found in the `R` script `analysis/maps.R`.
+
+\newpage
+
 # Pre-analysis setup
 
-```{r, message=FALSE}
-library('dplyr')   # for data wrangling
-library('purrr')   # for functional programming
-library('mgcv')    # for fitting GAMs
-library('ctmm')    # for animal movement analyses
-library('tidyr')   # for data wrangling
-library('MuMIn')   # for model selection
-library('sf')      # to work with spData maps
-library('sp')      # to import spatial layers
-library('raster')  # to import human footprint index raster
-library('ggplot2') # for plotting
-library('cowplot') # for plot grids
-library('gratia')  # for seq_min_max(), draw()
+```{r setup, message=FALSE}
+library('purrr')     # for functional programming
+library('mgcv')      # for fitting GAMs
+library('ctmm')      # for animal movement analyses
+library('tidyr')     # for data wrangling
+library('MuMIn')     # for model selection
+library('sf')        # to work with spData maps
+library('sp')        # to import spatial layers
+library('raster')    # to import human footprint index raster
+library('ggplot2')   # for plotting
+library('ggmap')     # for maps
+library('cowplot')   # for plot grids
+library('gratia')    # for seq_min_max(), draw()
+library('lubridate') # makes working with dates smoother
+library('dplyr')     # for data wrangling
+library('ncdf4')     # required for ml-HFI raster
 theme_set(theme_bw())
 
 # color palette
-pal <- c('#4477AA', '#ff8c00', '#66CCEE', '#009900',
-         '#CCBB44', '#EE6677', '#AA3377', '#BBBBBB')
-
+pal <- c('#4477AA', '#ff8c00', '#66CCEE', '#009900', '#CCBB44', '#EE6677', '#AA3377')
 N <- 74 # number of tapirs
 
 tapirs <- readRDS('../models/tapirs-final.rds') %>% # tapir data
   mutate(
+    # translate name
+    region.lab = if_else(region.lab == 'Mata Atlantica', 'Atlantic forest', region.lab),
     # convert tau_p from seconds to days
     tau.position.est = tau.position.est / (60^2 * 24),
     tau.position.low = tau.position.low / (60^2 * 24),
@@ -48,22 +72,15 @@ tapirs <- readRDS('../models/tapirs-final.rds') %>% # tapir data
     tau.velocity.high = tau.velocity.high / (60^2))
 ```
 
-# Individual variation in movement and space use
+\newpage
 
-```{r}
-# Mean home range estimates
-meta(tapirs$model, plot = FALSE) %>% round(2)
-```
+# Summary statistics for movement and space use parameters
 
-The overall mean home range estimate was 8.31 km^2^ with CI (6.53, 10.4) km^2^.
+<!-- # Individual variation in movement and space use -->
 
-```{r}
-range(tapirs$area.est) %>% round(digits = 1)
-```
+<!-- use results = 'hide' to hide the output from meta()-->
 
-The range in home range area estimates was 1.0 - 29.7 km^2^.
-
-```{r, message=FALSE}
+```{r create-tap, results = 'hide'}
 est <- function(y, parameter = c('mean', 'lwr', 'upr')) {
   if(sum(!is.na(y)) > 2) { # if there's at least 2 observations
     # fit a Gamma GLM with only an intercept to estimate the group-level mean
@@ -83,61 +100,95 @@ est <- function(y, parameter = c('mean', 'lwr', 'upr')) {
 }
 
 tap <-
+  tapirs %>%
   bind_rows(
-    bind_cols(
-      name = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall'),
-      region.lab = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall'),
-      bind_rows(
-        meta(tapirs$model[tapirs$region == 'atlantica'], plot = FALSE)[1, ],
-        meta(tapirs$model[tapirs$region == 'pantanal'], plot = FALSE)[1, ],
-        meta(tapirs$model[tapirs$region == 'cerrado'], plot = FALSE)[1, ],
-        meta(tapirs$model, plot = FALSE)[1, ]) %>%
-        rename(area.low = low, area.est = est, area.high = high),
-      # regional estimates
-      group_by(tapirs, region) %>%
-        summarize(tau.position.e = est(tau.position.est, 'mean'),
-                  tau.position.low = est(tau.position.est, 'lwr'),
-                  tau.position.high = est(tau.position.est, 'upr'),
-                  tau.velocity.e = est(tau.velocity.est, 'mean'),
-                  tau.velocity.low = est(tau.velocity.est, 'lwr'),
-                  tau.velocity.high = est(tau.velocity.est, 'upr'),
-                  speed.e = est(speed.est, 'mean'),
-                  speed.low = est(speed.est, 'lwr'),
-                  speed.high = est(speed.est, 'upr')) %>%
-        rename(tau.position.est = tau.position.e,
-               tau.velocity.est = tau.velocity.e,
-               speed.est = speed.e) %>%
-        bind_rows(
-          tapirs %>%
-            summarize(tau.position.est = est(tapirs$tau.position.est, 'mean'),
-                      tau.position.low = est(tapirs$tau.position.est, 'lwr'),
-                      tau.position.high = est(tapirs$tau.position.est, 'upr'),
-                      tau.velocity.est = est(tapirs$tau.velocity.est, 'mean'),
-                      tau.velocity.low = est(tapirs$tau.velocity.est, 'lwr'),
-                      tau.velocity.high = est(tapirs$tau.velocity.est, 'upr'),
-                      speed.est = est(tapirs$speed.est, 'mean'),
-                      speed.low = est(tapirs$speed.est, 'lwr'),
-                      speed.high = est(tapirs$speed.est, 'upr'))))) %>%
-  dplyr::select(region.lab, area.est, area.low, area.high, tau.position.est,
-                tau.position.low, tau.position.high, tau.velocity.est,
-                tau.velocity.low, tau.velocity.high, speed.est, speed.low,
-                speed.high)
-knitr::kable(t(tap)) # transpose to make readable
+    bind_cols(name = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall'),
+              region.lab = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall'),
+              bind_rows(
+                meta(tapirs$model[tapirs$region == 'atlantica'], plot = FALSE)[1, ],
+                meta(tapirs$model[tapirs$region == 'pantanal'], plot = FALSE)[1, ],
+                meta(tapirs$model[tapirs$region == 'cerrado'], plot = FALSE)[1, ],
+                meta(tapirs$model, plot = FALSE)[1, ]) %>%
+                rename(area.low = low, area.est = est, area.high = high),
+              # regional estimates
+              group_by(tapirs, region) %>%
+                summarize(tau.position.e = est(tau.position.est, 'mean'),
+                          tau.position.low = est(tau.position.est, 'lwr'),
+                          tau.position.high = est(tau.position.est, 'upr'),
+                          tau.velocity.e = est(tau.velocity.est, 'mean'),
+                          tau.velocity.low = est(tau.velocity.est, 'lwr'),
+                          tau.velocity.high = est(tau.velocity.est, 'upr'),
+                          speed.e = est(speed.est, 'mean'),
+                          speed.low = est(speed.est, 'lwr'),
+                          speed.high = est(speed.est, 'upr')) %>%
+                rename(tau.position.est = tau.position.e,
+                       tau.velocity.est = tau.velocity.e,
+                       speed.est = speed.e) %>%
+                bind_rows(
+                  tapirs %>%
+                    summarize(tau.position.est = est(tapirs$tau.position.est, 'mean'),
+                              tau.position.low = est(tapirs$tau.position.est, 'lwr'),
+                              tau.position.high = est(tapirs$tau.position.est, 'upr'),
+                              tau.velocity.est = est(tapirs$tau.velocity.est, 'mean'),
+                              tau.velocity.low = est(tapirs$tau.velocity.est, 'lwr'),
+                              tau.velocity.high = est(tapirs$tau.velocity.est, 'upr'),
+                              speed.est = est(tapirs$speed.est, 'mean'),
+                              speed.low = est(tapirs$speed.est, 'lwr'),
+                              speed.high = est(tapirs$speed.est, 'upr'))))) %>%
+  mutate(name = factor(name, levels = c(unique(tapirs$name), 'Atlantic forest',
+                                        'Pantanal', 'Cerrado', 'Overall')),
+         region.lab = factor(region.lab,
+                             levels = c('Atlantic forest', 'Pantanal', 'Cerrado',
+                                        'Overall')),
+         average = if_else(name %in% c('Atlantic forest','Pantanal','Cerrado','Overall'),
+                           'Group mean', 'Individual') %>%
+           factor(levels = c('Individual', 'Group mean'))) %>%
+  select(region.lab, name, area.low:area.high, tau.position.est:tau.position.low,
+         speed.est:tau.velocity.low, average)
 ```
 
 ```{r}
-round(range(tapirs$tau.position.est, na.rm = TRUE) / 60 / 60 / 24, 2)
+# est = estimated mean; low = lower 95% CI limit, high = upper 95% CI limit
+tap %>%
+  filter(average == 'Group mean') %>% # only group means
+  select(-c(average, region.lab)) %>%
+  relocate(name) %>% # move to be first column
+  mutate(across(where(is.double), \(x) round(x, 2))) %>% # round to 2 decimals
+  t() %>% # transpose to keep within page limits
+  knitr::kable(caption = "Habitat-specific and overall means and 95% confidence intervals for the tapirs' movement parameter estimates.")
 ```
 
-The range in range crossing time was 0.05-12.8 days.
+The overall mean home range estimate was 8.31 km^2^ with CI (6.53, 10.42) km^2^ (see Table 1 above).
 
 ```{r}
-round(range(tapirs$tau.velocity.est, na.rm = TRUE) / 60 / 60 , 2)
+range(tapirs$area.est) %>% round(digits = 1)
 ```
 
-The range in directional persistence timescale was 0.17-1.88 hours.
+The range in home range area estimates was 1.0 - 29.7 km^2^.
 
-Estimate differences in mean daily movement speed between animals of different ages and sexes using Gamma GLMs fit via `mgcv::gam()`:
+```{r}
+round(range(tapirs$tau.position.est, na.rm = TRUE), 2)
+```
+
+The range in range crossing time was 0.05-12.76 days.
+
+The overall average directional persistence was 0.44 hours with a 95% CI of (0.38, 0.51) hours (see Table 1 above).
+
+```{r}
+round(range(tapirs$tau.velocity.est, na.rm = TRUE), 2)
+```
+
+The range in mean directional persistence timescale was 0.17-1.88 hours.
+
+The overall average speed was 11.2 km/day with a 95% CI of (10.1, 12.3) km/day (see Table 1 above).
+
+```{r}
+range(tapirs$speed.est, na.rm = TRUE) %>% round(2)
+```
+
+The range in average daily speed was 1.51 - 25.96 km/day.
+
+When we first submitted the manuscript using `ctmm` version 0.6.1, `ctmm::meta()` could only produce estimates for home ranges. Thus, we used Gamma GLMs fit via `mgcv::gam()` to estimate differences in mean daily movement speed between animals of different ages and sexes:
 
 ```{r}
 # Differences in movement speed between animals of different ages and sexes
@@ -154,7 +205,7 @@ summary(m.speed.sex)
 summary(m.speed.age)
 
 # predictions
-tibble(Sex = c('MALE', 'FEMALE'),
+tibble(Sex = c('FEMALE', 'MALE'),
        bind_cols(predict(m.speed.sex, tibble(sex = Sex), se.fit = TRUE))) %>%
   mutate(est = round(exp(fit), 2),
          lwr = round(exp(fit - 1.96 * se.fit), 2),
@@ -166,31 +217,356 @@ tibble(Adult = c('Yes', 'No'),
          upr = round(exp(fit + 1.96 * se.fit), 2))
 ```
 
-Estimate differences in home range sizes using `ctmm::meta()`:
+There was no evidence that daily speed differed between sexes (females: 10.5 km/day, 95% CI: 9.19 - 12.0; males: 11.9 km/day; 95% CI: 10.3 - 13.7, $p$ = 0.22, 4a), nor between age groups (adults: 11.8 km/day, 95% CI: 10.6 - 13.2; sub-adults: 9.52 km/day, 95% CI: 7.94 - 11.4; $p$ = 0.053, Fig. 4b).
 
 ```{r}
 # by sex
 meta(list(female = filter(tapirs, sex == 'FEMALE')$akde,
           male = filter(tapirs, sex == 'MALE')$akde),
-     plot = FALSE)
-
-meta(filter(tapirs, sex == 'FEMALE')$akde, plot = FALSE) # CIs for females
-meta(filter(tapirs, sex == 'MALE')$akde, plot = FALSE) # CIs for males
+     plot = FALSE, verbose = TRUE) # verbose output with CIs
 
 # by age group
 meta(list(subadult = filter(tapirs, adult == 'No')$akde,
           adult = filter(tapirs, adult == 'Yes')$akde),
-     plot = FALSE)
-
-meta(filter(tapirs, adult == 'No')$akde, plot = FALSE) # CIs for sub-adults
-meta(filter(tapirs, adult == 'Yes')$akde, plot = FALSE) # CIs for adults
+     plot = FALSE, verbose = TRUE)
 ```
 
-# Variation in movement across biomes and habitat composition (figure 5)
+Using `ctmm::meta()`, we found that home range area was not significantly different ($\alpha = 0.05$) between sexes (females: mean = 6.11, 95% CI = (4.53, 8.07); males: mean = 5.46, 95% CI = (4.03, 7.23); LRT for female > male = 1.09, 95% CI = (0.70, 1.63)) nor between age groups (sub-adults: mean = 6.99, 95% CI = (3.87, 11.65); adults: mean = 5.37, 95% CI = (4.39, 6.50); LRT for sub-adult > adult = 1.29, 95% CI = (0.65, 2.18)).
+
+\newpage
+
+# Figures
+
+## ml-HFI map (figure 1)
+
+Figure 1 is not be recreated here because the final version was created in Photoshop. The code to create the figure's components can be found in the `R` script `analysis/maps.R`.
+
+## AKDE 95% home range estimates (figure 2)
+
+```{r figure-2, fig.width = 6.46, height = 12, message=FALSE}
+tapirs <- tapirs %>%
+  mutate(proj = map(data, function(d) CRS(d@info$projection)),
+         akde.df =
+           map(1:N,
+               function(i)
+                 SpatialPolygonsDataFrame.UD(akde[[i]],
+                                             proj4string = proj[[i]]) %>%
+                 spTransform(CRS("+proj=longlat")) %>%
+                 fortify()))
+
+atl.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('AF_', group))
+pan.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('PA_', group))
+cer.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('CE_', group))
+
+plot.akde <- function(reg) {
+  if(reg == 'Atlantic Forest') {
+    r <- 'AF_'
+    ZOOM <- 11
+  } else if(reg == 'Pantanal') {
+    r <- 'PA_'
+    ZOOM <- 12
+  } else if(reg == 'Cerrado'){
+    r <- 'CE_'
+    ZOOM <- 10
+  } else {
+    stop('invalid region name')
+  }
+  akdes <- bind_rows(tapirs$akde.df) %>%
+    filter(grepl(r, group), grepl('est', group))
+  
+  # box expansion factor 
+  k <- case_when(reg == 'Pantanal' ~ 0.6,
+                 reg == 'Cerrado' ~ 0.1,
+                 reg == 'Atlantic Forest' ~ 0.5)
+  
+  BOX <- akdes %>%
+    summarize(left = min(long),
+              bottom = min(lat),
+              right = max(long),
+              top = max(lat)) %>%
+    
+    # expand boxes slightly
+    mutate(left = left - k * (right - left),
+           right = right + k * (right - left),
+           bottom = bottom - 0.1 * (top - bottom),
+           top = top + 0.1 * (top - bottom)) %>%
+    unlist()
+  
+  MAP <- get_map(BOX, zoom = ZOOM,
+                 maptype = "satellite",
+                 style="element:labels|visibility:off|
+                    style=feature:administrative.land_parcel|
+                    visibility:off|style=feature:administrative.neighborhood
+                    |visibility:off")
+  
+  TITLE <- case_when(reg == 'Atlantic Forest'~ 'a)',
+                     reg == 'Pantanal' ~ 'b)',
+                     reg == 'Cerrado' ~ 'c)')
+  
+  ggmap(MAP, darken = c(0.3, "white")) +
+    geom_polygon(aes(x = long, y = lat, fill = group), color = 'black',
+                 alpha = 0.5, akdes, lwd = 0.15) +
+    scale_fill_viridis_d('Human Footprint Index', option = 'B') +
+    labs(x = 'Longitude', y = 'Latitude', title = TITLE) +
+    theme(panel.border = element_rect(colour = 'black', fill = 'transparent'),
+          legend.position = 'none')
+}
+
+plot_grid(plot.akde('Atlantic Forest'), plot.akde('Pantanal'),
+          plot.akde('Cerrado'), ncol = 2) # used ncol = 1 for figure in the main text
+```
+
+\newpage
+
+## Parameter estimates using `ctmm::meta()` (figure 3)
+
+```{r figure-3a}
+# 3a) meta() of areas
+ggplot(tap) +
+  geom_segment(aes(x = area.low, xend = area.high, y = name, yend = name,
+                   color = region.lab), lwd = 2) +
+  geom_point(aes(x = area.est, y = name, shape = average), col = 'black', size = 1.2) +
+  geom_point(aes(x = area.est, y = name, shape = average), col = 'white', size = 0.7) +
+  scale_shape_manual(element_blank(), values = c(19, 17)) +
+  scale_color_manual('Region', values = c(pal[1:3], 'black'),
+                     labels = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall')) +
+  scale_y_discrete(limits = rev,
+                   labels = c('Means', 'Cerrado', 'Pantanal', 'Atlantic forest'),
+                   breaks = c('Atlantic forest', 'CE_15_KURUKA',
+                              'PA_33_GABRIELA', 'AF_14_JAMESBOND')) +
+  labs(x = bquote('Estimated 95% home range area'~(km^2)),
+       y = NULL)
+```
+
+\newpage
+
+```{r figure-3b}
+# 3b) home range crossing times
+ggplot(tap) +
+  geom_segment(aes(x = tau.position.low,
+                   xend = tau.position.high, y = name, yend = name,
+                   color = region.lab), lwd = 2) +
+  geom_point(aes(x = tau.position.est, y = name, shape = average),
+             col = 'black', size = 1.2) +
+  geom_point(aes(x = tau.position.est, y = name, shape = average),
+             col = 'white', size = 0.7) +
+  scale_shape_manual(element_blank(), values = c(19, 17)) +
+  scale_color_manual('Region', values = c(pal[1:3], 'black'),
+                     labels = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall')) +
+  scale_y_discrete(limits = rev,
+                   labels = c('Means', 'Cerrado', 'Pantanal', 'Atlantic forest'),
+                   breaks = c('Atlantic forest', 'CE_15_KURUKA',
+                              'PA_33_GABRIELA', 'AF_14_JAMESBOND')) +
+  labs(x = 'Range crossing time (days)', y = NULL)
+```
+
+\newpage
+
+```{r figure-3c}
+# 3c) velocity autocorrelation timescale
+ggplot(tap) +
+  geom_segment(aes(x = tau.velocity.low, xend = tau.velocity.high, y = name, yend = name,
+                   color = region.lab), lwd = 2) +
+  geom_point(aes(x = tau.velocity.est, y = name, shape = average),
+             col = 'black', size = 1.2) +
+  geom_point(aes(x = tau.velocity.est, y = name, shape = average),
+             col = 'white', size = 0.7) +
+  scale_shape_manual(element_blank(), values = c(19, 17)) +
+  scale_color_manual('Region', values = c(pal[1:3], 'black'),
+                     labels = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall')) +
+  scale_y_discrete(limits = rev,
+                   labels = c('Means', 'Cerrado', 'Pantanal', 'Atlantic forest'),
+                   breaks = c('Atlantic forest', 'CE_15_KURUKA',
+                              'PA_33_GABRIELA', 'AF_14_JAMESBOND')) +
+  labs(x = 'Directional persistence timescale (hours)', y = NULL)
+```
+
+\newpage
+
+```{r figure-3d}
+# 3d) mean movement speeds
+ggplot(tap) +
+  geom_segment(aes(x = speed.low, xend = speed.high,
+                   y = name, yend = name, color = region.lab), lwd = 2) +
+  geom_point(aes(x = speed.est, y = name, shape = average), col = 'black', size = 1.2) +
+  geom_point(aes(x = speed.est, y = name, shape = average), col = 'white', size = 0.7) +
+  scale_shape_manual(element_blank(), values = c(19, 17)) +
+  scale_color_manual('Region', values = c(pal[1:3], 'black'),
+                     labels = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall')) +
+  scale_y_discrete(limits = rev,
+                   labels = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Means'),
+                   breaks = c('AF_17_ESPERTA', 'PA_33_GABRIELA', 'CE_15_KURUKA',
+                              'Atlantic forest')) +
+  labs(x = 'Estimated average speed (km/day)', y = NULL)
+```
+
+\newpage
+
+## Strip charts (figure 4)
+
+```{r figure-4, results='hide'}
+# import data
+tapirs <- tapirs %>%
+  mutate(sex = if_else(sex == 'FEMALE', 'Female', 'Male'),
+         adult = if_else(adult == 'Yes', 'Adult', 'Young'),
+         name = factor(name,
+                       levels = c(unique(name), 'Atlantic forest', 'Pantanal', 'Cerrado',
+                                  'Overall')),
+         sex_r = paste(sex, region.lab, sep = '_') %>%
+           factor(levels = c('Female_Atlantic forest', 'Female_Pantanal',
+                             'Female_Cerrado', 'Male_Atlantic forest',
+                             'Male_Pantanal', 'Male_Cerrado')),
+         adult_r = paste(adult, region.lab, sep = '_') %>%
+           factor(levels = c('Adult_Atlantic forest', 'Adult_Pantanal',
+                             'Adult_Cerrado', 'Young_Atlantic forest',
+                             'Young_Pantanal', 'Young_Cerrado')))
+
+# means and CIs
+m_speed_sex <- gam(speed.est ~ sex + region.lab,
+                   family = Gamma('log'),
+                   data = tapirs,
+                   method = 'REML')
+m_speed_age <- gam(speed.est ~ adult + region.lab,
+                   family = Gamma('log'),
+                   data = tapirs,
+                   method = 'REML')
+
+# predictions ---
+## speed, sex
+summ_ss <-
+  expand_grid(sex = unique(tapirs$sex),
+              region.lab = unique(tapirs$region.lab)) %>%
+  tibble(bind_cols(predict(m_speed_sex, se.fit = TRUE,
+                           tibble(sex = sex, region.lab = region.lab)))) %>%
+  mutate(sex_r = paste(sex, region.lab, sep = '_') %>%
+           factor(levels = levels(tapirs$sex_r)),
+         est = round(exp(fit), 2),
+         lwr = round(exp(fit - 1.96 * se.fit), 2),
+         upr = round(exp(fit + 1.96 * se.fit), 2))
+## speed, adult
+summ_sa <-
+  expand_grid(adult = unique(tapirs$adult),
+              region.lab = unique(tapirs$region.lab)) %>%
+  tibble(bind_cols(predict(m_speed_age, se.fit = TRUE,
+                           tibble(adult = adult, region.lab = region.lab)))) %>%
+  mutate(adult_r = paste(adult, region.lab, sep = '_') %>%
+           factor(levels = levels(tapirs$adult_r)),
+         est = round(exp(fit), 2),
+         lwr = round(exp(fit - 1.96 * se.fit), 2),
+         upr = round(exp(fit + 1.96 * se.fit), 2))
+
+## home range, sex
+hr_estimates <- function(REGION, SEX = NA, ADULT = NA) {
+  if(! is.na(SEX)) {
+    d <- tapirs %>% filter(sex == SEX) # filter to a single sex  
+  } else {
+    d <- tapirs %>% filter(adult == ADULT) # filter to a single sex
+  }
+  
+  d <-
+    d %>%
+    filter(region.lab == REGION) %>% # filter to a single region
+    pull(akde) %>%
+    meta(plot = FALSE) %>%
+    as_tibble() %>%
+    slice(1) %>%
+    rename(lwr = low,
+           upr = high) %>%
+    mutate(region.lab = REGION, sex = SEX, adult = ADULT)
+  
+  if(! is.na(SEX)) {
+    d <- d %>% mutate(sex_r = paste(sex, region.lab, sep = '_') %>%
+                        factor(levels = levels(tapirs$sex_r)))
+  } else {
+    d <- d %>% mutate(adult_r = paste(adult, region.lab, sep = '_') %>%
+                        factor(levels = levels(tapirs$adult_r)))
+  }
+}
+
+## home range, sex
+summ_as <-
+  expand_grid(sex = unique(tapirs$sex),
+              region.lab = unique(tapirs$region.lab)) %>%
+  mutate(bind_cols(purrr::map2_dfr(region.lab, sex,
+                                   \(x, y) hr_estimates(REGION = x, SEX = y))))
+
+## home range, adult
+summ_aa <-
+  expand_grid(adult = unique(tapirs$adult),
+              region.lab = unique(tapirs$region.lab)) %>%
+  mutate(bind_cols(purrr::map2_dfr(region.lab, adult,
+                                   \(x, y) hr_estimates(REGION = x, ADULT = y))))
+
+# function for summary plots ----
+summary_plot <- function(Y, group = c('sex', 'adult')) {
+  
+  x <- paste0(group, '_r')
+  summarized <- get(paste0('summ_', substr(Y, 1, 1), substr(x, 1, 1)))
+  
+  if(length(group) > 1) stop('Select only one group.')
+  
+  colnames(tapirs)[grepl(x, colnames(tapirs))] <- 'x'
+  colnames(tapirs)[grepl(Y, colnames(tapirs))] <- 'y'
+  colnames(summarized)[grepl(x, colnames(summarized))] <- 'x'
+  
+  p <- 
+    ggplot(tapirs) +
+    # CIs
+    geom_errorbar(aes(x, ymin = lwr, ymax = upr, color = region.lab),
+                  summarized, lwd = 3, width = 0, alpha = 0.5) +
+    # data
+    geom_jitter(aes(x, y, color = region.lab), shape = 4, width = 0.2, size = 2,
+                na.rm = TRUE) +
+    # means
+    geom_point(aes(x, est), summarized, size = 2) +
+    geom_point(aes(x, est), summarized, color = 'white') +
+    
+    # theme
+    scale_fill_manual('Region', values = pal, aesthetics = c('fill', 'color'),
+                      breaks = c('Atlantic forest', 'Pantanal', 'Cerrado')) +
+    theme(legend.position = 'none')
+  
+  # add appropriate labels depending on grouping
+  if(group == 'sex') {
+    p <- p +
+      scale_x_discrete(NULL, breaks = c('Female_Pantanal', 'Male_Pantanal'),
+                       labels = c('Female', 'Male'))
+  } else {
+    p <- p +
+      scale_x_discrete(NULL, breaks = c('Adult_Pantanal', 'Young_Pantanal'),
+                       labels = c('Adult', 'Young'))
+  }
+  
+  # add appropriate y label
+  if(Y == 'speed.est') {
+    p + scale_y_continuous('Speed (km/day)')
+  } else {
+    p + scale_y_continuous(expression(Home~range~(km^2)))
+  }
+}
+
+# summary plots ----
+spe_s <- summary_plot(group = 'sex', Y = 'speed.est')
+spe_a <- summary_plot(group = 'adult', Y = 'speed.est')
+hr_s <- summary_plot(group = 'sex', Y = 'area.est')
+hr_a <- summary_plot(group = 'adult', Y = 'area.est')
+```
+
+```{r}
+plot_grid(get_legend(spe_s +
+                       theme(legend.position = 'top')),
+          plot_grid(spe_s, spe_a, hr_s, hr_a, ncol = 2, label_y = 1.08,
+                    labels = c('a)', 'b)', 'c)', 'd)')),
+          ncol = 1, rel_heights = c(0.1, 1))
+```
+
+\newpage
+
+## Variation in movement across biomes and habitat composition (figure 5)
 
 The best model is found using `MuMIn::dredge()`. Smooth terms are allowed to have a maximum `k` of 10 (or 5 if there are not enough unique values). The models are fit using maximum likelihood while using `MuMIn::dredge()`, but the best model is fit using Restricted Maximum Likelihood (REML).
 
-```{r}
+```{r figure-5}
 tapirs.lu <- readRDS('../models/tapirs-land-use.rds') %>%
   mutate(tau.velocity.est = tau.velocity.est / (60^2), # from seconds to hours
          tau.velocity.low = tau.velocity.low / (60^2),
@@ -206,9 +582,13 @@ dplyr::select(tapirs.lu, `?`:plantation) %>%
             min = min(value),
             max = max(value)) %>%
   arrange(desc(unique)) %>%
-  mutate(`>5` = unique > 5,
-         `>10` = unique > 10)
+  mutate(`> 5 uniques` = unique > 5,
+         `> 10 uniques` = unique > 10)
+```
 
+<!-- print code but don't evaluate it -->
+
+```{r, eval=FALSE}
 # Gamma GAM regression on home range estimate
 dredge(global.model = gam(area.est ~
                             s(forest, k = 10) +
@@ -226,6 +606,28 @@ dredge(global.model = gam(area.est ~
   head(20)
 ```
 
+<!-- evaluate code but don't print it -->
+
+```{r dredge-area, size='small', echo=FALSE}
+options(width = 110)
+# Gamma GAM regression on home range estimate
+dredge(global.model = gam(area.est ~ # full model
+                            s(forest, k = 10) +
+                            s(floodplain, k = 10) +
+                            s(savannah, k = 10) +
+                            s(dirt, k = 10) +
+                            s(pasture, k = 5) +
+                            s(crop, k = 5) +
+                            s(water, k = 5),
+                          family = Gamma('log'),
+                          data = tapirs.lu,
+                          na.action = na.fail,
+                          method = 'ML'), # need to use ML with dredge()
+       rank = 'AICc') %>%
+  head(20)
+options(width = 74)
+```
+
 Model 3 with `s(dirt)` as the only predictor is the best (parsimonious) model, since it is the best single-term model, and its AICc is not much larger than any of the models with a lower AICc (`delta` < 3.5). Still, the effect of `s(dirt)` is negligible.
 
 ```{r}
@@ -234,22 +636,44 @@ m.hr <- gam(area.est ~ s(dirt, k = 5),
             data = tapirs.lu,
             method = 'REML')
 summary(m.hr)
+```
 
+```{r, eval=FALSE}
 # Gamma GAM regression on average speed estimate
-MuMIn::dredge(global.model = gam(speed.est ~
-                                   s(forest, k = 10) +
-                                   s(floodplain, k = 10) +
-                                   s(savannah, k = 10) +
-                                   s(dirt, k = 10) +
-                                   s(pasture, k = 5) +
-                                   s(crop, k = 5) +
-                                   s(water, k = 5),
-                                 family = Gamma('log'),
-                                 data = tapirs.lu.sp, # cannot have NAs
-                                 na.action = na.fail,
-                                 method = 'ML'),
-              rank = 'AICc') %>%
+dredge(global.model = gam(speed.est ~
+                            s(forest, k = 10) +
+                            s(floodplain, k = 10) +
+                            s(savannah, k = 10) +
+                            s(dirt, k = 10) +
+                            s(pasture, k = 5) +
+                            s(crop, k = 5) +
+                            s(water, k = 5),
+                          family = Gamma('log'),
+                          data = tapirs.lu.sp, # cannot have NAs
+                          na.action = na.fail,
+                          method = 'ML'),
+       rank = 'AICc') %>%
   head(20)
+```
+
+```{r dredge-speed, size='small', echo=FALSE}
+options(width = 110)
+# Gamma GAM regression on average speed estimate
+dredge(global.model = gam(speed.est ~
+                            s(forest, k = 10) +
+                            s(floodplain, k = 10) +
+                            s(savannah, k = 10) +
+                            s(dirt, k = 10) +
+                            s(pasture, k = 5) +
+                            s(crop, k = 5) +
+                            s(water, k = 5),
+                          family = Gamma('log'),
+                          data = tapirs.lu.sp, # cannot have NAs
+                          na.action = na.fail,
+                          method = 'ML'),
+       rank = 'AICc') %>%
+  head(20)
+options(width = 74)
 ```
 
 No term contributed significantly to the model, since no model had an AICc lower than 4.35 with respect to the null model with only an intercept term (`speed.est ~ 1`, see model 1 in the table above).
@@ -264,10 +688,11 @@ filter(tapirs.lu, !is.na(tau.velocity.est)) %>%
             min = min(value),
             max = max(value)) %>%
   arrange(desc(unique)) %>%
-  mutate(`>5` = unique > 5,
-         `>10` = unique > 10) %>%
-  filter(`>5`)
+  mutate(`> 5 uniques` = unique > 5,
+         `> 10 uniques` = unique > 10)
+```
 
+```{r, eval=FALSE}
 dredge(global.model = gam(tau.velocity.est ~
                             s(forest, k = 10) +
                             s(floodplain, k = 10) +
@@ -284,6 +709,25 @@ dredge(global.model = gam(tau.velocity.est ~
   head(30)
 ```
 
+```{r dredge-tau-v, size='small', echo=FALSE}
+options(width = 110)
+dredge(global.model = gam(tau.velocity.est ~
+                            s(forest, k = 10) +
+                            s(floodplain, k = 10) +
+                            s(savannah, k = 10) +
+                            s(dirt, k = 5) +
+                            s(pasture, k = 5) +
+                            s(crop, k = 5) +
+                            s(water, k = 5),
+                          family = Gamma('log'),
+                          na.action = na.fail,
+                          data = tapirs.lu.tv,
+                          method = 'ML'),
+       rank = 'AICc') %>%
+  head(30)
+options(width = 74)
+```
+
 Model 73 (`tau.velocity.est ~ s(forest, k = 10) + s(water, k = 5)`) is the best two-term model. While it is not substantially better than model 65 (`tau.velocity.est ~ s(water, k = 5)`), the `forest` smooth term was included because of the high range in proportion of forested habitat (0.138-1).
 
 ```{r}
@@ -291,16 +735,6 @@ m.tauv <- gam(tau.velocity.est ~ s(forest, k = 10) + s(water, k = 5),
               family = Gamma('log'),
               data = tapirs.lu,
               method = 'REML')
-```
-
-We can re-fit the best models for $\tau_v$ without the outlier:
-
-```{r}
-hist(tapirs.lu$tau.velocity.est)
-m.tauv.1 <- gam(tau.velocity.est ~ s(forest, k = 10) + s(water, k = 5),
-                family = Gamma('log'),
-                data = filter(tapirs.lu, tau.velocity.est < 1.5),
-                method = 'REML')
 ```
 
 Create predictions for each model and plot them:
@@ -325,28 +759,18 @@ ggplot() +
   theme(legend.position = 'top',
         panel.grid = element_blank())
 
-# lu on tau_v
-pred.tv.f <- tibble(forest = seq_min_max(tapirs.lu$forest, n = 100),
+# forest on tau_v (5b)
+newd.tv.f <- tibble(forest = seq_min_max(tapirs.lu$forest, n = 100),
                     water = mean(tapirs.lu$water, na.rm = TRUE))
 pred.tv.f <-
-  bind_cols(pred.tv.f, predict(m.tauv, newdata = pred.tv.f, se.fit = TRUE,
+  bind_cols(newd.tv.f, predict(m.tauv, newdata = newd.tv.f, se.fit = TRUE,
                                terms = 's(forest)')) %>%
   mutate(est = exp(fit),
          lwr = exp(fit - 1.96 * se.fit),
-         upr = exp(fit + 1.96 * se.fit))
+         upr = exp(fit + 1.96 * se.fit),
+         model = 'Full dataset')
 
-pred.tv.w <- tibble(forest = mean(tapirs.lu$forest, na.rm = TRUE),
-                    water = seq_min_max(tapirs.lu$water, n = 100))
-pred.tv.w <-
-  bind_cols(pred.tv.w, predict(m.tauv, newdata = pred.tv.w, se.fit = TRUE,
-                               terms = 's(water)')) %>%
-  mutate(est = exp(fit),
-         lwr = exp(fit - 1.96 * se.fit),
-         upr = exp(fit + 1.96 * se.fit))
-
-# regression plot
-p.forest <-
-  ggplot() +
+ggplot() +
   geom_ribbon(aes(forest, ymin = lwr, ymax = upr), pred.tv.f, alpha = 0.2) +
   geom_line(aes(forest, est), pred.tv.f) +
   geom_segment(aes(x = forest, xend = forest, y = tau.velocity.low,
@@ -358,87 +782,35 @@ p.forest <-
   scale_shape_manual('Outlier', values = c(19, 4), labels = c('No', 'Yes')) +
   scale_color_manual('Region', values = pal[1:3]) +
   labs(x = 'Proportion of forested habitat',
-       y = 'Directional persistence (hrs)') +
+       y = 'Directional persistence (h)') +
   theme(legend.position = 'none')
-
-p.water <-
-  ggplot() +
-  geom_ribbon(aes(water, ymin = lwr, ymax = upr), pred.tv.w, alpha = 0.2) +
-  geom_line(aes(water, est), pred.tv.w) +
-  geom_segment(aes(x = water, xend = water, y = tau.velocity.low,
-                   yend = tau.velocity.high, color = region.lab), tapirs.lu,
-               lwd = 0.5, alpha = 0.5) +
-  geom_point(aes(water, tau.velocity.est, color = region.lab,
-                 shape = tau.velocity.est > 1.5),
-             filter(tapirs.lu, ! is.na(tau.velocity.est)), alpha = 0.9) +
-  scale_shape_manual('Outlier', values = c(19, 4), labels = c('No', 'Yes'))+
-  scale_color_manual('Region', values = pal[1:3]) +
-  labs(x = 'Proportion of water in the habitat',
-       y = 'Directional persistence (hrs)') +
-  theme(legend.position = 'none')
-
-p <- plot_grid(get_legend(p.forest + theme(legend.position = 'top')),
-               p.forest, p.water,
-               ncol = 1, rel_heights = c(0.2, 1, 1),
-               labels = c(NA, 'a)', 'b)')); p
-
-# Regression plot without outlier (panels 5b and 5c)
-pred.tv.f <- tibble(forest = seq_min_max(tapirs.lu$forest, n = 100),
-                    water = mean(tapirs.lu$water, na.rm = TRUE))
-pred.tv.f <-
-  bind_cols(pred.tv.f, predict(m.tauv.1, newdata = pred.tv.f, se.fit = TRUE,
-                               terms = 's(forest)')) %>%
-  mutate(est = exp(fit),
-         lwr = exp(fit - 1.96 * se.fit),
-         upr = exp(fit + 1.96 * se.fit))
-
-pred.tv.w <- tibble(forest = mean(tapirs.lu$forest, na.rm = TRUE),
-                    water = seq_min_max(tapirs.lu$water, n = 100))
-pred.tv.w <-
-  bind_cols(pred.tv.w, predict(m.tauv.1, newdata = pred.tv.w, se.fit = TRUE,
-                               terms = 's(water)')) %>%
-  mutate(est = exp(fit),
-         lwr = exp(fit - 1.96 * se.fit),
-         upr = exp(fit + 1.96 * se.fit))
-
-
-p.forest <-
-  ggplot() +
-  geom_ribbon(aes(forest, ymin = lwr, ymax = upr), pred.tv.f, alpha = 0.2) +
-  geom_line(aes(forest, est), pred.tv.f) +
-  geom_segment(aes(x = forest, xend = forest, y = tau.velocity.low,
-                   yend = tau.velocity.high, color = region.lab),
-               filter(tapirs.lu, tau.velocity.est < 1.5), lwd = 0.5,
-               alpha = 0.5) +
-  geom_point(aes(forest, tau.velocity.est, color = region.lab),
-             filter(tapirs.lu, tau.velocity.est < 1.5), alpha = 0.9) +
-  scale_color_manual('Region', values = pal[1:3]) +
-  labs(x = 'Proportion of forested habitat',
-       y = 'Directional persistence (hrs)') +
-  theme(legend.position = 'none')
-
-p.water <-
-  ggplot() +
-  geom_ribbon(aes(water, ymin = lwr, ymax = upr), pred.tv.w, alpha = 0.2) +
-  geom_line(aes(water, est), pred.tv.w) +
-  geom_segment(aes(x = water, xend = water, y = tau.velocity.low,
-                   yend = tau.velocity.high, color = region.lab),
-               filter(tapirs.lu, tau.velocity.est < 1.5),
-               lwd = 0.5, alpha = 0.5) +
-  geom_point(aes(water, tau.velocity.est, color = region.lab),
-             filter(tapirs.lu, tau.velocity.est < 1.5), alpha = 0.9) +
-  scale_color_manual('Region', values = pal[1:3]) +
-  labs(x = 'Proportion of water in the habitat',
-       y = 'Directional persistence (hrs)') +
-  theme(legend.position = 'none')
-
-plot_grid(get_legend(p.forest + theme(legend.position = 'top')),
-          p.forest, p.water,
-          ncol = 1, rel_heights = c(0.2, 1, 1, 1),
-          labels = c(NA, 'b)', 'c)'))
 ```
 
-As requested by reviewer #2, we can repeat the analysis for panels 5b and 5c without the data from the Atlantic forest biome (after having removed the outlier):
+### $\tau_v$ ~ s(forest) + s(water) without outlier
+
+We can re-fit the best models for $\tau_v$ without the outlier:
+
+```{r tauv-forest, fig.width=3.5, fig.height=3, fig.align='center'}
+hist(tapirs.lu$tau.velocity.est, main = NULL, xlab = expression(widehat(tau[v])))
+m.tauv.1 <- gam(tau.velocity.est ~ s(forest, k = 10) + s(water, k = 5),
+                family = Gamma('log'),
+                data = filter(tapirs.lu, tau.velocity.est < 1.5),
+                method = 'REML')
+
+# forest on tau_v (5b) without outlier
+pred.tv.f <-
+  bind_rows(pred.tv.f,
+            bind_cols(newd.tv.f, predict(m.tauv.1, newdata = newd.tv.f, se.fit = TRUE,
+                                         terms = 's(forest)')) %>%
+              mutate(est = exp(fit),
+                     lwr = exp(fit - 1.96 * se.fit),
+                     upr = exp(fit + 1.96 * se.fit),
+                     model = 'Without outlier'))
+```
+
+### $\tau_v$ ~ s(forest) + s(water) without outlier or Atlantic forest data
+
+We can repeat the analysis for panels 5b without the data from the Atlantic forest biome (after having removed the outlier):
 
 ```{r}
 m.tauv.2 <- gam(tau.velocity.est ~ s(forest, k = 10) + s(water, k = 5),
@@ -448,118 +820,86 @@ m.tauv.2 <- gam(tau.velocity.est ~ s(forest, k = 10) + s(water, k = 5),
                               region != 'atlantica'),
                 method = 'REML')
 
-pred.tv.f <- tibble(forest = seq_min_max(tapirs.lu$forest, n = 100),
-                    water = mean(tapirs.lu$water, na.rm = TRUE))
 pred.tv.f <-
-  bind_cols(pred.tv.f, predict(m.tauv.2, newdata = pred.tv.f, se.fit = TRUE,
-                               terms = 's(forest)')) %>%
-  mutate(est = exp(fit),
-         lwr = exp(fit - 1.96 * se.fit),
-         upr = exp(fit + 1.96 * se.fit))
+  bind_rows(pred.tv.f,
+            bind_cols(newd.tv.f, predict(m.tauv.2, newdata = newd.tv.f, se.fit = TRUE,
+                                         terms = 's(forest)')) %>%
+              mutate(est = exp(fit),
+                     lwr = exp(fit - 1.96 * se.fit),
+                     upr = exp(fit + 1.96 * se.fit),
+                     model = 'Without Atlantic forest or outlier'))
 
-pred.tv.w <- tibble(forest = mean(tapirs.lu$forest, na.rm = TRUE),
-                    water = seq_min_max(tapirs.lu$water, n = 100))
-pred.tv.w <-
-  bind_cols(pred.tv.w, predict(m.tauv.2, newdata = pred.tv.w, se.fit = TRUE,
-                               terms = 's(water)')) %>%
-  mutate(est = exp(fit),
-         lwr = exp(fit - 1.96 * se.fit),
-         upr = exp(fit + 1.96 * se.fit))
-
-p.forest <-
-  ggplot() +
-  geom_ribbon(aes(forest, ymin = lwr, ymax = upr), pred.tv.f, alpha = 0.2) +
-  geom_line(aes(forest, est), pred.tv.f) +
-  geom_segment(aes(x = forest, xend = forest, y = tau.velocity.low,
-                   yend = tau.velocity.high, color = region.lab),
-               filter(tapirs.lu,
-                      tau.velocity.est < 1.5,
-                      region != 'atlantica'), lwd = 0.5, alpha = 0.5) +
-  geom_point(aes(forest, tau.velocity.est, color = region.lab),
-             filter(tapirs.lu, tau.velocity.est < 1.5,
-                    region != 'atlantica'), alpha = 0.9) +
-  scale_color_manual('Region', values = pal[2:3]) +
-  labs(x = 'Proportion of forested habitat',
-       y = 'Directional persistence (hrs)') +
-  theme(legend.position = 'none')
-
-p.water <-
-  ggplot() +
-  geom_ribbon(aes(water, ymin = lwr, ymax = upr), pred.tv.w, alpha = 0.2) +
-  geom_line(aes(water, est), pred.tv.w) +
-  geom_segment(aes(x = water, xend = water, y = tau.velocity.low,
-                   yend = tau.velocity.high, color = region.lab),
-               filter(tapirs.lu,
-                      tau.velocity.est < 1.5,
-                      region != 'atlantica'), lwd = 0.5, alpha = 0.5) +
-  geom_point(aes(water, tau.velocity.est, color = region.lab),
-             filter(tapirs.lu, tau.velocity.est < 1.5,
-                    region != 'atlantica'), alpha = 0.9) +
-  scale_color_manual('Region', values = pal[2:3]) +
-  labs(x = 'Proportion of water in the habitat',
-       y = 'Directional persistence (hrs)') +
-  theme(legend.position = 'none')
-
-plot_grid(get_legend(p.forest + theme(legend.position = 'top')),
-          p.forest, p.water,
-          ncol = 1, rel_heights = c(0.2, 1, 1, 1),
-          labels = c(NA, 'b)', 'c)'))
+ggplot() +
+    geom_ribbon(aes(forest, ymin = lwr, ymax = upr, fill = model), pred.tv.f, alpha=0.2) +
+    geom_line(aes(forest, est, color = model), pred.tv.f) +
+    geom_errorbar(aes(x = forest, ymin = tau.velocity.low, ymax = tau.velocity.high,
+                      color = region.lab), alpha = 0.5, tapirs.lu)+
+    geom_point(aes(forest, tau.velocity.est, color = region.lab,
+                   shape = tau.velocity.est > 1.5),
+               filter(tapirs.lu, ! is.na(tau.velocity.est))) +
+    scale_color_manual(NULL, values = c(pal[1:3], 1, 2, 'blue'),
+                       aesthetics = c('color', 'fill'),
+                       breaks = c(levels(tapirs.lu$region.lab), unique(pred.tv.f$model))) +
+    scale_shape_manual('Outlier', values = c(19, 4), labels = c('No', 'Yes')) +
+    labs(x = 'Proportion of forested habitat',
+         y = 'Directional persistence (h)') +
+  theme(legend.position = 'top')
 ```
 
-Finally, as requested by reviewer #2, we can perform the regression shown in panel 5c without the zeros. However, since this reduces the data set to only 5 data points, we are forced to reduce the model's terms to linear or remove `s(forest)`. Since removing the zeros drastically changes the dataset, we decided to fit the dataset to the simple model with `s(water)` only.
+The removal of the outlier did not change the model's slope significantly, but it reduced model variance an appreciable amount. However, we do not have sufficient evidence to believe that the presence of the Atlantic forest data affected the model significantly, as its removal did not change the model slope substantially and the 95% confidence intervals of the two models (red and blue) mostly overlap.
 
-```{r}
-tapirs.lu.w <- filter(tapirs.lu,
-                      tau.velocity.est < 1.5, # remove the outlier
-                      water > 0) # remove all instances of water == 0
-nrow(tapirs.lu.w)
+\newpage
 
-m.tauv.w <- gam(tau.velocity.est ~ s(water, k = 5),
-                family = Gamma('log'),
-                data = tapirs.lu.w,
-                method = 'REML')
+## Variation in movement across biomes and gradients of human disturbance (figure 6)
 
-pred.tv.w <- tibble(water = seq_min_max(tapirs.lu.w$water, n = 100))
-pred.tv.w <- bind_cols(pred.tv.w,
-                       predict(m.tauv.w, newdata = pred.tv.w, se.fit = TRUE,
-                               terms = 's(water)')) %>%
-  mutate(est = exp(fit),
-         lwr = exp(fit - 1.96 * se.fit),
-         upr = exp(fit + 1.96 * se.fit))
+We can extract the ml-HFI for each tapir:
 
-p.water +
-  geom_ribbon(aes(water, ymin = lwr, ymax = upr), pred.tv.w, alpha = 0.2,
-              fill = 'red') +
-  geom_line(aes(water, est), pred.tv.w, color = 'red')
-```
-
-Since the 95% confidence intervals of the original regression line (black) and the one fit to non-zero data (red) overlap, we have insufficient evidence to conclude that the presence of the zeros affected the model significantly.
-
-# Variation in movement across biomes and gradients of human disturbance (figure 6)
-
-```{r, warning=FALSE}
-# imort ml-HFI raster
+```{r joanna-akde-hfi, warning=FALSE, fig.cap='Autocorrelated Kernel Density Estimation for the home range of tapir labelled as "AF_01_JOANA". The solid line indicates the estimated 95% home range estimate, while the dashed lines indicate its 95% confidence inerval.'}
 hfi.raster <- raster('../data/hfi-layers/ml_hfi_v1_2019.nc')
-
-# extract mean hfi and hr areas
-plot(tapirs$akde[[5]])
-extract(hfi.raster, as.sf(tapirs$akde[[5]])) # [[1]]=lwr, [[2]]=est, [[3]]=upr
 
 tapirs <-
   tapirs %>%
   mutate(region = factor(region), # need factors for GAMs
-         region.lab = if_else(region.lab == 'Mata Atlantica', # translate
-                              true = 'Atlantic forest',
-                              false = region.lab) %>%
-           factor(levels = c('Atlantic forest','Pantanal','Cerrado')),
-         hfi.mean = map_dbl(1:N,
+         hfi.mean = map_dbl(1:N, # add mean HFI
                             function(i)
-                              extract(hfi.raster,
-                                      as.sf(akde[[i]]))[[2]] %>% # take estimate
+                              extract(hfi.raster, as.sf(akde[[i]]))[[2]] %>% # take est
                               mean(na.rm = TRUE)),
          hr.size = map_dbl(akde, function(a) summary(a)$CI[2]))
-# warning on change of projection is ok (suppressed)
 
+# extract AKDE for the first tapir
+joanna_akde <-
+  SpatialPolygonsDataFrame.UD( # transform the AKDE to a spatial polygon
+    object = tapirs$akde[[1]],
+    proj4string = CRS(tapirs$data[[1]]@info$projection)) %>%
+  spTransform(CRS("+proj=longlat")) %>% # change projection
+  fortify() # change to data frame
+
+# import ml-HFI raster
+joanna_raster <- hfi.raster %>%
+  crop(c(xmin = -52.37, xmax = -52.33,
+         ymin = -22.55, ymax = -22.50)) %>%
+  rasterToPoints() %>%
+  data.frame() %>%
+  fortify() %>%
+  rename(hfi = X__xarray_dataarray_variable__)
+
+# create a plot of the cropped ml-HFI raster and the AKDE
+ggplot() +
+  geom_raster(aes(x, y, fill = hfi), joanna_raster) + # ml-HFI raster
+  geom_polygon(aes(x = long, y = lat, lwd = group, lty = group), # AKDE
+               joanna_akde, color = 'white', fill = '#80808040', show.legend = FALSE) +
+  scale_fill_viridis_c('ml-HFI', option = 'B', limits = c(0, 1)) +
+  scale_x_continuous('Longitude', expand = c(0, 0)) +
+  scale_y_continuous('Latitude', expand = c(0, 0)) +
+  scale_size_manual(breaks = unique(joanna_akde$group), values = c(.5, 1.25, .5)) +
+  scale_linetype_manual(breaks = unique(joanna_akde$group), values = c(2, 1, 2)) +
+  theme(panel.border = element_rect(colour = 'black', fill = 'transparent'),
+        legend.position = 'top')
+```
+
+We can then estimate the effect of ml-HFI on tapir movement.
+
+```{r hfi-models, warning=FALSE}
 # hfi on hr size
 m.hr.0 <- gam(hr.size ~ hfi.mean, # hfi.mean is linear on the link (log) scale
               family = Gamma('log'),
@@ -648,7 +988,7 @@ p3 <-
   theme(legend.position = 'top'); p3
 ```
 
-As requested by reviewer #2, we can re-fit the regression model without the Atlantic forest data to show the data point (0.039, 15.1) has little effect on the conclusion drawn from the model (i.e. no significant effect of ml-HFI on average speed). The model without the Atlantic forest data point is indicated in red:
+We can re-fit the regression model without the Atlantic forest data to show the data point (0.039, 15.1) has little effect on the conclusion drawn from the model (i.e. no significant effect of ml-HFI on average speed). The model without the Atlantic forest data point is indicated in red:
 
 ```{r}
 # without Mata Atlantica data
@@ -674,14 +1014,14 @@ p3 +
 
 ```{r, include=FALSE, eval=FALSE}
 # effect of ml-HFI on tau_v
-m7 <- gam(tau.velocity.est ~ s(hfi.mean), # shrunk a linear term by REML
+m4 <- gam(tau.velocity.est ~ s(hfi.mean), # shrunk a linear term by REML
           family = Gamma('log'),
           data = tapirs,
           method = 'REML')
 summary(m4)
 
 # without outlier estimate
-m7.1 <- gam(tau.velocity.est ~ s(hfi.mean),
+m4.1 <- gam(tau.velocity.est ~ s(hfi.mean),
             family = Gamma('log'),
             data = filter(tapirs, tau.velocity.est < 1.5),
             method = 'REML')
@@ -716,9 +1056,6 @@ ggplot(tapirs) +
   labs(x = 'ml-HFI', y = 'Directional persistence (hours)') +
   theme(legend.position = 'top')
 ```
-
-* new figures 5 and 6
-* `dredge()`
 
 \newpage
 
