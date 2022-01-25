@@ -30,13 +30,6 @@ tapirs <- readRDS('models/tapirs-final.rds') %>%
                  fortify()))
 
 # plot AKDES: https://groups.google.com/g/ctmm-user/c/RlEF60S3mvg/m/NLzqBRWOBgAJ
-# map example: https://methodsblog.com/2021/03/22/mapping-animal-movement-in-r-the-science-and-the-art/
-#              https://github.com/pratikunterwegs/elemove/blob/master/R/04_plot_code.R
-
-
-#Register API KEY
-register_google("AIzaSyB4kmWgqcGUpJ843kllnuGfzjUmik1bJaA")
-
 
 # spatial elements
 sa <- filter(spData::world,
@@ -96,13 +89,12 @@ group_by(raw, name, region) %>%
   mutate(range = max - min) %>%
   ggplot(aes(region, range, color = region)) +
   geom_point() +
-  labs(x = NULL, 'Years of tracking')
+  labs(x = NULL, y = 'Years of tracking')
 
 # maps ####
 # locator inset map
 inset <-
   ggplot() +
-  # add satellite image of BR to have water as a background # # # # # # # # # #
   geom_raster(aes(x, y, fill = hfi), hfi) + # geom_tile() needs too much memory
   geom_sf(data = sa, size = 0.25, color = 'grey70', fill = 'transparent') +
   geom_sf(data = filter(sa, name_long == 'Brazil'), size = 0.4,
