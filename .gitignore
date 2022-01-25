@@ -46,4 +46,5 @@ data/hfi-layers/
 spatial-layers/
 
 # cache Rmd files
-*_cache/*
+analysis/*_cache/
+writing/*_cache/
