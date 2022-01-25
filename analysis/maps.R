@@ -178,15 +178,12 @@ plot.akde <- function(reg) {
   # use BOXes in `if` statement if using hfi raster
   if(reg == 'Atlantic Forest') {
     r <- 'AF_'
-    BOX <- c(left = -52.6, bottom = -22.7, right = -52, top = -22.3)
     ZOOM <- 11
   } else if(reg == 'Pantanal') {
     r <- 'PA_'
-    BOX <- c(left = -56.0, bottom = -19.45, right = -55.6, top = -19.15)
     ZOOM <- 12
   } else if(reg == 'Cerrado'){
     r <- 'CE_'
-    BOX <- c(left = -54, bottom = -21.85, right = -53.4, top = -21.45)
     ZOOM <- 10
   } else {
     stop('invalid region name')
