@@ -32,6 +32,8 @@ Section 2, *Summary statistics for movement and space use parameters*, shows how
 
 Section 3, *Figures*, shows how figures 2-6 were created (with minor changes for aesthetic purposes and ease of readability). Figure 1 is not recreated here because the final version was created in Photoshop. The code to create the figure's components can be found in the `R` script `analysis/maps.R`.
 
+Section 4, *Core home range analysis*, repeats the sections 2 and 3 for the 50% AKDE home range estimates rather than the 95% AKDE.
+
 \newpage
 
 # Pre-analysis setup
@@ -104,6 +106,7 @@ tap <-
   bind_rows(
     bind_cols(name = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall'),
               region.lab = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall'),
+              # 95% home range estimates
               bind_rows(
                 meta(tapirs$model[tapirs$region == 'atlantica'], plot = FALSE)[1, ],
                 meta(tapirs$model[tapirs$region == 'pantanal'], plot = FALSE)[1, ],
@@ -158,7 +161,7 @@ tap %>%
   knitr::kable(caption = "Habitat-specific and overall means and 95% confidence intervals for the tapirs' movement parameter estimates.")
 ```
 
-The overall mean home range estimate was 8.31 km^2^ with CI (6.53, 10.42) km^2^ (see Table 1 above).
+The overall mean 95% home range estimate was 8.31 km^2^ with CI (6.53, 10.42) km^2^ (see Table 1 above).
 
 ```{r}
 range(tapirs$area.est) %>% round(digits = 1)
@@ -239,7 +242,7 @@ Using `ctmm::meta()`, we found that home range area was not significantly differ
 
 ## ml-HFI map (figure 1)
 
-Figure 1 is not be recreated here because the final version was created in Photoshop. The code to create the figure's components can be found in the `R` script `analysis/maps.R`.
+Figure 1 is not recreated here because the final version was created in Photoshop. The code to create the figure's components can be found in the `R` script `analysis/maps.R`.
 
 ## AKDE 95% home range estimates (figure 2)
 
@@ -455,8 +458,8 @@ summ_sa <-
          lwr = round(exp(fit - 1.96 * se.fit), 2),
          upr = round(exp(fit + 1.96 * se.fit), 2))
 
-## home range, sex
-hr_estimates <- function(REGION, SEX = NA, ADULT = NA) {
+## function to extract home ranges
+hr_estimates <- function(REGION, SEX = NA, ADULT = NA, level.ud) {
   if(! is.na(SEX)) {
     d <- tapirs %>% filter(sex == SEX) # filter to a single sex  
   } else {
@@ -467,11 +470,10 @@ hr_estimates <- function(REGION, SEX = NA, ADULT = NA) {
     d %>%
     filter(region.lab == REGION) %>% # filter to a single region
     pull(akde) %>%
-    meta(plot = FALSE) %>%
+    meta(plot = FALSE, level.UD = level.ud) %>%
     as_tibble() %>%
     slice(1) %>%
-    rename(lwr = low,
-           upr = high) %>%
+    rename(lwr = low, upr = high) %>%
     mutate(region.lab = REGION, sex = SEX, adult = ADULT)
   
   if(! is.na(SEX)) {
@@ -487,15 +489,15 @@ hr_estimates <- function(REGION, SEX = NA, ADULT = NA) {
 summ_as <-
   expand_grid(sex = unique(tapirs$sex),
               region.lab = unique(tapirs$region.lab)) %>%
-  mutate(bind_cols(purrr::map2_dfr(region.lab, sex,
-                                   \(x, y) hr_estimates(REGION = x, SEX = y))))
+  mutate(bind_cols(map2_dfr(region.lab, sex,
+                            \(x, y) hr_estimates(REGION = x, SEX = y, level.ud = 0.95))))
 
 ## home range, adult
 summ_aa <-
   expand_grid(adult = unique(tapirs$adult),
               region.lab = unique(tapirs$region.lab)) %>%
-  mutate(bind_cols(purrr::map2_dfr(region.lab, adult,
-                                   \(x, y) hr_estimates(REGION = x, ADULT = y))))
+  mutate(bind_cols(map2_dfr(region.lab, adult,
+                            \(x, y) hr_estimates(REGION = x, ADULT = y, level.ud=0.95))))
 
 # function for summary plots ----
 summary_plot <- function(Y, group = c('sex', 'adult')) {
@@ -830,19 +832,19 @@ pred.tv.f <-
                      model = 'Without Atlantic forest or outlier'))
 
 ggplot() +
-    geom_ribbon(aes(forest, ymin = lwr, ymax = upr, fill = model), pred.tv.f, alpha=0.2) +
-    geom_line(aes(forest, est, color = model), pred.tv.f) +
-    geom_errorbar(aes(x = forest, ymin = tau.velocity.low, ymax = tau.velocity.high,
-                      color = region.lab), alpha = 0.5, tapirs.lu)+
-    geom_point(aes(forest, tau.velocity.est, color = region.lab,
-                   shape = tau.velocity.est > 1.5),
-               filter(tapirs.lu, ! is.na(tau.velocity.est))) +
-    scale_color_manual(NULL, values = c(pal[1:3], 1, 2, 'blue'),
-                       aesthetics = c('color', 'fill'),
-                       breaks = c(levels(tapirs.lu$region.lab), unique(pred.tv.f$model))) +
-    scale_shape_manual('Outlier', values = c(19, 4), labels = c('No', 'Yes')) +
-    labs(x = 'Proportion of forested habitat',
-         y = 'Directional persistence (h)') +
+  geom_ribbon(aes(forest, ymin = lwr, ymax = upr, fill = model), pred.tv.f, alpha=0.2) +
+  geom_line(aes(forest, est, color = model), pred.tv.f) +
+  geom_errorbar(aes(x = forest, ymin = tau.velocity.low, ymax = tau.velocity.high,
+                    color = region.lab), alpha = 0.5, tapirs.lu)+
+  geom_point(aes(forest, tau.velocity.est, color = region.lab,
+                 shape = tau.velocity.est > 1.5),
+             filter(tapirs.lu, ! is.na(tau.velocity.est))) +
+  scale_color_manual(NULL, values = c(pal[1:3], 1, 2, 'blue'),
+                     aesthetics = c('color', 'fill'),
+                     breaks = c(levels(tapirs.lu$region.lab), unique(pred.tv.f$model))) +
+  scale_shape_manual('Outlier', values = c(19, 4), labels = c('No', 'Yes')) +
+  labs(x = 'Proportion of forested habitat',
+       y = 'Directional persistence (h)') +
   theme(legend.position = 'top')
 ```
 
@@ -1054,6 +1056,368 @@ ggplot(tapirs) +
   geom_point(aes(hfi.mean, tau.velocity.est, color = region.lab), alpha = 0.9) +
   scale_color_manual('Region', values = pal[1:3]) +
   labs(x = 'ml-HFI', y = 'Directional persistence (hours)') +
+  theme(legend.position = 'top')
+```
+
+\newpage
+
+# Core home range analysis
+
+This section repeats the analyses from section 2 and 3 based on core (50%) home range estimates. All analyses which are not based on home range estimates (e.g., those on $\tau_p, \tau_v$) are not repeated.
+
+## Summary statistics for movement and space use parameters
+
+```{r get-areas}
+# function to extract core home range
+get_core_area <- function(i) {
+  summary(tapirs$akde[[i]], units = FALSE, level.UD = 0.5)$CI %>%
+    as.data.frame() %>%
+    as_tibble()
+}
+```
+
+```{r create-tap-2, results = 'hide'}
+tapirs <- readRDS('../models/tapirs-final.rds') %>% # tapir data
+  bind_cols(map_dfr(1:N, get_core_area) %>%
+              transmute(core.area.low = low / 1e6,
+                        core.area.est = est / 1e6,
+                        core.area.high = high / 1e6)) %>%
+  mutate(
+    # translate name
+    region.lab = if_else(region.lab == 'Mata Atlantica', 'Atlantic forest', region.lab))
+
+tap <-
+  tapirs %>%
+  bind_rows(
+    bind_cols(name = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall'),
+              region.lab = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall'),
+              # core home range estimates
+              bind_rows(
+                meta(tapirs$model[tapirs$region=='atlantica'], plot=F, level.UD=0.5)[1,],
+                meta(tapirs$model[tapirs$region=='pantanal'], plot=F, level.UD=0.5)[1,],
+                meta(tapirs$model[tapirs$region=='cerrado'], plot=F, level.UD=0.5)[1,],
+                meta(tapirs$model, plot = FALSE, level.UD = 0.5)[1, ]) %>%
+                rename(core.area.low = low, core.area.est = est, core.area.high=high)))%>%
+  mutate(name = factor(name, levels = c(unique(tapirs$name), 'Atlantic forest',
+                                        'Pantanal', 'Cerrado', 'Overall')),
+         region.lab = factor(region.lab,
+                             levels = c('Atlantic forest', 'Pantanal', 'Cerrado',
+                                        'Overall')),
+         average = if_else(name %in% c('Atlantic forest','Pantanal','Cerrado','Overall'),
+                           'Group mean', 'Individual') %>%
+           factor(levels = c('Individual', 'Group mean'))) %>%
+  select(region.lab, name, core.area.low:core.area.high, average)
+```
+
+```{r}
+# est = estimated mean; low = lower 95% CI limit, high = upper 95% CI limit
+tap %>%
+  filter(average == 'Group mean') %>% # only group means
+  select(-c(average, region.lab)) %>%
+  relocate(name) %>% # move to be first column
+  mutate(across(where(is.double), \(x) round(x, 2))) %>% # round to 2 decimals
+  t() %>% # transpose to keep within page limits
+  knitr::kable(caption = "Habitat-specific and overall means and 95% confidence intervals for the tapirs' core home range estimates.")
+```
+
+The overall mean core home range estimate was 1.92 km^2^ with CI (1.51, 2.41) km^2^ (see Table 2 above).
+
+```{r}
+range(tapirs$core.area.est) %>% round(digits = 1)
+```
+
+The range in core home range area estimates was 0.2 - 6.8 km^2^.
+
+```{r}
+# by sex
+meta(list(female = filter(tapirs, sex == 'FEMALE')$akde,
+          male = filter(tapirs, sex == 'MALE')$akde),
+     plot = FALSE, verbose = TRUE, level.UD = 0.5) # verbose output with CIs
+
+# by age group
+meta(list(subadult = filter(tapirs, adult == 'No')$akde,
+          adult = filter(tapirs, adult == 'Yes')$akde),
+     plot = FALSE, verbose = TRUE, level.UD = 0.5)
+```
+
+Using `ctmm::meta()`, we found that core home range area was not significantly different ($\alpha = 0.05$) between sexes (females: mean = 1.28, 95% CI = (0.94, 1.71); males: mean = 1.14, 95% CI = (0.85, 1.51); LRT for female > male = 1.10, 95% CI = (0.70, 1.64)) nor between age groups (sub-adults: mean = 1.41, 95% CI = (0.79, 2.32); adults: mean = 1.15, 95% CI = (0.93, 1.41); LRT for sub-adult > adult = 1.21, 95% CI = (0.61, 2.04)).
+
+\newpage
+
+## Figures
+
+### AKDE 95% home range estimates (figure 2)
+
+```{r figure-2-2, fig.width = 6.46, height = 12, message=FALSE}
+tapirs <- tapirs %>%
+  mutate(proj = map(data, function(d) CRS(d@info$projection)),
+         akde.df =
+           map(1:N,
+               function(i)
+                 SpatialPolygonsDataFrame.UD(akde[[i]],
+                                             proj4string = proj[[i]],
+                                             level.UD = 0.5) %>%
+                 spTransform(CRS("+proj=longlat")) %>%
+                 fortify()))
+
+atl.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('AF_', group))
+pan.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('PA_', group))
+cer.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('CE_', group))
+
+plot_grid(plot.akde('Atlantic Forest'), plot.akde('Pantanal'),
+          plot.akde('Cerrado'), ncol = 2) # used ncol = 1 for figure in the main text
+```
+
+\newpage
+
+### Parameter estimates using `ctmm::meta()` (figure 3)
+
+```{r figure-3a-2}
+# 3a) meta() of areas
+ggplot(tap) +
+  geom_segment(aes(x = core.area.low, xend = core.area.high, y = name, yend = name,
+                   color = region.lab), lwd = 2) +
+  geom_point(aes(x = core.area.est, y = name, shape = average), col = 'black', size=1.2) +
+  geom_point(aes(x = core.area.est, y = name, shape = average), col = 'white', size=0.7) +
+  scale_shape_manual(element_blank(), values = c(19, 17)) +
+  scale_color_manual('Region', values = c(pal[1:3], 'black'),
+                     labels = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall')) +
+  scale_y_discrete(limits = rev,
+                   labels = c('Means', 'Cerrado', 'Pantanal', 'Atlantic forest'),
+                   breaks = c('Atlantic forest', 'CE_15_KURUKA',
+                              'PA_33_GABRIELA', 'AF_14_JAMESBOND')) +
+  labs(x = bquote('Estimated core home range area'~(km^2)),
+       y = NULL)
+```
+
+\newpage
+
+### Strip charts (figure 4)
+
+```{r figure-4-2, results='hide'}
+tapirs <- tapirs %>%
+  mutate(sex = if_else(sex == 'FEMALE', 'Female', 'Male'),
+         adult = if_else(adult == 'Yes', 'Adult', 'Young'),
+         name = factor(name,
+                       levels = c(unique(name), 'Atlantic forest', 'Pantanal', 'Cerrado',
+                                  'Overall')),
+         sex_r = paste(sex, region.lab, sep = '_') %>%
+           factor(levels = c('Female_Atlantic forest', 'Female_Pantanal',
+                             'Female_Cerrado', 'Male_Atlantic forest',
+                             'Male_Pantanal', 'Male_Cerrado')),
+         adult_r = paste(adult, region.lab, sep = '_') %>%
+           factor(levels = c('Adult_Atlantic forest', 'Adult_Pantanal',
+                             'Adult_Cerrado', 'Young_Atlantic forest',
+                             'Young_Pantanal', 'Young_Cerrado')))
+
+# removed analyses on speed
+
+## core home range, sex
+summ_cs <-
+  expand_grid(sex = unique(tapirs$sex),
+              region.lab = unique(tapirs$region.lab)) %>%
+  mutate(bind_cols(map2_dfr(region.lab, sex,
+                            \(x, y) hr_estimates(REGION = x, SEX = y, level.ud = 0.5))))
+
+## core home range, adult
+summ_ca <-
+  expand_grid(adult = unique(tapirs$adult),
+              region.lab = unique(tapirs$region.lab)) %>%
+  mutate(bind_cols(map2_dfr(region.lab, adult,
+                            \(x, y) hr_estimates(REGION = x, ADULT = y, level.ud = 0.5))))
+
+# summary plots ----
+hr_s <- summary_plot(group = 'sex', Y = 'core.area.est')
+hr_a <- summary_plot(group = 'adult', Y = 'core.area.est')
+```
+
+```{r}
+plot_grid(get_legend(hr_s +
+                       theme(legend.position = 'top')),
+          plot_grid(hr_s, hr_a, ncol = 2, label_y = 1.08,
+                    labels = c('c)', 'd)')),
+          ncol = 1, rel_heights = c(0.1, 1))
+```
+
+\newpage
+
+### Variation in movement across biomes and habitat composition (figure 5)
+
+The best model is found using `MuMIn::dredge()`. Smooth terms are allowed to have a maximum `k` of 10 (or 5 if there are not enough unique values). The models are fit using maximum likelihood while using `MuMIn::dredge()`, but the best model is fit using Restricted Maximum Likelihood (REML).
+
+<!-- print code but don't evaluate it -->
+```{r}
+tapirs.lu <- tapirs.lu %>%
+  left_join(select(tapirs, name.short, core.area.est), by = 'name.short')
+```
+
+```{r, eval=FALSE}
+# Gamma GAM regression on home range estimate
+dredge(global.model = gam(core.area.est ~
+                            s(forest, k = 10) +
+                            s(floodplain, k = 10) +
+                            s(savannah, k = 10) +
+                            s(dirt, k = 10) +
+                            s(pasture, k = 5) +
+                            s(crop, k = 5) +
+                            s(water, k = 5),
+                          family = Gamma('log'),
+                          data = tapirs.lu,
+                          na.action = na.fail,
+                          method = 'ML'), # need to use ML with dredge()
+       rank = 'AICc') %>%
+  head(20)
+```
+
+<!-- evaluate code but don't print it -->
+
+```{r dredge-area-2, size='small', echo=FALSE}
+options(width = 110)
+# Gamma GAM regression on home range estimate
+dredge(global.model = gam(core.area.est ~ # full model
+                            s(forest, k = 10) +
+                            s(floodplain, k = 10) +
+                            s(savannah, k = 10) +
+                            s(dirt, k = 10) +
+                            s(pasture, k = 5) +
+                            s(crop, k = 5) +
+                            s(water, k = 5),
+                          family = Gamma('log'),
+                          data = tapirs.lu,
+                          na.action = na.fail,
+                          method = 'ML'), # need to use ML with dredge()
+       rank = 'AICc') %>%
+  head(20)
+options(width = 74)
+```
+
+Model 9 with `s(forest)` as the only predictor is the best (parsimonious) model, since it is the best single-term model, and its AICc is not much larger than the model with the lowest AICc (`delta` = 1.28). Still, the effect of `s(forest)` is negligible.
+
+```{r}
+m.chr <- gam(core.area.est ~ s(forest, k = 10), # core home range
+             family = Gamma('log'),
+             data = tapirs.lu,
+             method = 'REML')
+summary(m.chr)
+```
+
+```{r}
+# lu on hr (panel 5a)
+pred.lu.hr <- tibble(forest = seq(0.13, 1, length.out = 300))
+pred.lu.hr <- bind_cols(pred.lu.hr,
+                        predict(m.chr, newdata = pred.lu.hr, se.fit = TRUE)) %>%
+  mutate(est = exp(fit),
+         lwr = exp(fit - 1.96 * se.fit),
+         upr = exp(fit + 1.96 * se.fit))
+
+ggplot() +
+  geom_ribbon(aes(forest, ymin = lwr, ymax = upr), pred.lu.hr, alpha = 0.2) +
+  geom_line(aes(forest, est), pred.lu.hr) +
+  geom_point(aes(forest, core.area.est, color = region.lab), tapirs.lu, alpha = 0.9) +
+  scale_color_manual('Region', values = pal[1:3], 
+                     labels = c('Atlantic forest', 'Pantanal', 'Cerrado')) +
+  labs(x = 'Proportion of exposed soil in the habitat',
+       y = expression('Home Range Area'~(km^2))) +
+  theme(legend.position = 'top',
+        panel.grid = element_blank())
+```
+
+\newpage
+
+### Variation in movement across biomes and gradients of human disturbance (figure 6)
+
+We can extract the ml-HFI for each tapir:
+
+```{r joanna-akde-hfi-2, warning=FALSE, fig.cap='Autocorrelated Kernel Density Estimation for the home range of tapir labelled as "AF_01_JOANA". The solid line indicates the estimated 95% home range estimate, while the dashed lines indicate its 95% confidence inerval.'}
+tapirs <-
+  tapirs %>%
+  mutate(region = factor(region), # need factors for GAMs
+         hfi.mean.core = map_dbl(1:N, # add mean HFI
+                                 function(i)
+                                   extract(hfi.raster,
+                                           as.sf(akde[[i]], level.UD = 0.5))[[2]] %>%
+                                   mean(na.rm = TRUE)),
+         core.hr.size = map_dbl(akde, function(a) summary(a, level.UD = 0.5)$CI[2]))
+
+# extract AKDE for the first tapir
+joanna_akde <-
+  SpatialPolygonsDataFrame.UD( # transform the AKDE to a spatial polygon
+    object = tapirs$akde[[1]],
+    proj4string = CRS(tapirs$data[[1]]@info$projection),
+    level.UD = 0.5) %>% # core home range
+  spTransform(CRS("+proj=longlat")) %>% # change projection
+  fortify() # change to data frame
+
+# import ml-HFI raster
+joanna_raster <- hfi.raster %>%
+  crop(c(xmin = -52.37, xmax = -52.33,
+         ymin = -22.55, ymax = -22.50)) %>%
+  rasterToPoints() %>%
+  data.frame() %>%
+  fortify() %>%
+  rename(hfi = X__xarray_dataarray_variable__)
+
+# create a plot of the cropped ml-HFI raster and the AKDE
+ggplot() +
+  geom_raster(aes(x, y, fill = hfi), joanna_raster) + # ml-HFI raster
+  geom_polygon(aes(x = long, y = lat, lwd = group, lty = group), # AKDE
+               joanna_akde, color = 'white', fill = '#80808040', show.legend = FALSE) +
+  scale_fill_viridis_c('ml-HFI', option = 'B', limits = c(0, 1)) +
+  scale_x_continuous('Longitude', expand = c(0, 0)) +
+  scale_y_continuous('Latitude', expand = c(0, 0)) +
+  scale_size_manual(breaks = unique(joanna_akde$group), # need 6 values because 2 areas
+                    values = c(0.5, 0.5, 1.25, 1.25, 0.5, 0.5)) +
+  scale_linetype_manual(breaks = unique(joanna_akde$group),
+                        values = c(2, 2, 1, 1, 2, 2)) +
+  theme(panel.border = element_rect(colour = 'black', fill = 'transparent'),
+        legend.position = 'top')
+```
+
+We can then estimate the effect of ml-HFI on tapir movement.
+
+```{r hfi-models-2, warning=FALSE}
+# hfi on hr size
+m.hr.0 <- gam(core.hr.size ~ hfi.mean.core, # hfi.mean is linear on the link (log) scale
+              family = Gamma('log'),
+              data = tapirs,
+              method = 'REML')
+m.hr.1 <- gam(core.hr.size ~ s(hfi.mean.core), # allow hfi.mean to be smooth
+              family = Gamma('log'),
+              data = tapirs,
+              method = 'REML')
+m.hr.2 <- gam(core.hr.size ~ region + s(hfi.mean.core), # different intercept per region
+              family = Gamma('log'),
+              data = tapirs,
+              method = 'REML')
+m.hr.3 <- gam(core.hr.size ~ s(hfi.mean.core, by = region), # different smooth per region
+              family = Gamma('log'),
+              data = tapirs,
+              method = 'REML')
+m.hr.4 <- gam(core.hr.size ~ region + s(hfi.mean.core, by = region),
+              family = Gamma('log'),
+              data = tapirs,
+              method = 'REML')
+
+# accounting for effect of region does not improve the model fit
+AIC(m.hr.0, m.hr.1, m.hr.2, m.hr.3, m.hr.4)
+summary(m.hr.0)
+
+# regression plot
+pred.hr <- tibble(hfi.mean.core = seq(0.003, 0.31, length.out = 400))
+pred.hr <- bind_cols(pred.hr,
+                     predict(m.hr.0, newdata = pred.hr, se.fit = TRUE)) %>%
+  mutate(est = exp(fit),
+         lwr = exp(fit - 1.96 * se.fit),
+         upr = exp(fit + 1.96 * se.fit))
+
+ggplot() +
+  geom_ribbon(aes(hfi.mean.core, ymin = lwr, ymax = upr), pred.hr, alpha = 0.2) +
+  geom_line(aes(hfi.mean.core, est), pred.hr) +
+  geom_errorbar(aes(x = hfi.mean.core, ymin = core.area.low, ymax = core.area.high,
+                    color = region.lab), tapirs, lwd = 0.5, alpha = 0.5) +
+  geom_point(aes(hfi.mean.core, core.hr.size, color = region.lab), tapirs, alpha = 0.9) +
+  scale_color_manual('Region', values = pal[1:3]) +
+  labs(x = 'ml-HFI', y = expression('Core Home Range Area'~(km^2))) +
   theme(legend.position = 'top')
 ```
 
