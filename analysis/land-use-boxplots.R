@@ -16,9 +16,6 @@ pal <- c('#4477AA', '#ff8c00', '#66CCEE')
 
 # single column of all relevant habitat type proportions
 tapirs <- readRDS('models/tapirs-land-use.rds') %>%
-  mutate(region.lab = if_else(region.lab == 'Mata Atlantica',
-                              'Atlantic forest', as.character(region.lab)) %>%
-           factor(levels = c('Atlantic forest', 'Pantanal', 'Cerrado'))) %>%
   pivot_longer(c(forest, floodplain, pasture, crop, dirt, savannah, water,
                  urban, plantation), names_to = 'Habitat type',
                values_to = 'Proportion') %>%

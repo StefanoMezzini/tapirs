@@ -61,6 +61,7 @@ pal <- c('#4477AA', '#ff8c00', '#66CCEE', '#009900', '#CCBB44', '#EE6677', '#AA3
 N <- 74 # number of tapirs
 
 tapirs <- readRDS('../models/tapirs-final.rds') %>% # tapir data
+  arrange(name) %>%
   mutate(
     # translate name
     region.lab = if_else(region.lab == 'Mata Atlantica', 'Atlantic forest', region.lab),
@@ -104,13 +105,13 @@ est <- function(y, parameter = c('mean', 'lwr', 'upr')) {
 tap <-
   tapirs %>%
   bind_rows(
-    bind_cols(name = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall'),
-              region.lab = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall'),
+    bind_cols(name = c('Atlantic forest', 'Cerrado', 'Pantanal', 'Overall'),
+              region.lab = c('Atlantic forest', 'Cerrado', 'Pantanal', 'Overall'),
               # 95% home range estimates
               bind_rows(
                 meta(tapirs$model[tapirs$region == 'atlantica'], plot = FALSE)[1, ],
-                meta(tapirs$model[tapirs$region == 'pantanal'], plot = FALSE)[1, ],
                 meta(tapirs$model[tapirs$region == 'cerrado'], plot = FALSE)[1, ],
+                meta(tapirs$model[tapirs$region == 'pantanal'], plot = FALSE)[1, ],
                 meta(tapirs$model, plot = FALSE)[1, ]) %>%
                 rename(area.low = low, area.est = est, area.high = high),
               # regional estimates
@@ -139,11 +140,11 @@ tap <-
                               speed.low = est(tapirs$speed.est, 'lwr'),
                               speed.high = est(tapirs$speed.est, 'upr'))))) %>%
   mutate(name = factor(name, levels = c(unique(tapirs$name), 'Atlantic forest',
-                                        'Pantanal', 'Cerrado', 'Overall')),
+                                        'Cerrado', 'Pantanal', 'Overall')),
          region.lab = factor(region.lab,
-                             levels = c('Atlantic forest', 'Pantanal', 'Cerrado',
+                             levels = c('Atlantic forest', 'Cerrado', 'Pantanal',
                                         'Overall')),
-         average = if_else(name %in% c('Atlantic forest','Pantanal','Cerrado','Overall'),
+         average = if_else(name %in% c('Atlantic forest','Cerrado','Pantanal','Overall'),
                            'Group mean', 'Individual') %>%
            factor(levels = c('Individual', 'Group mean'))) %>%
   select(region.lab, name, area.low:area.high, tau.position.est:tau.position.low,
@@ -258,19 +259,19 @@ tapirs <- tapirs %>%
                  fortify()))
 
 atl.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('AF_', group))
-pan.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('PA_', group))
 cer.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('CE_', group))
+pan.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('PA_', group))
 
 plot.akde <- function(reg) {
   if(reg == 'Atlantic Forest') {
     r <- 'AF_'
     ZOOM <- 11
-  } else if(reg == 'Pantanal') {
-    r <- 'PA_'
-    ZOOM <- 12
   } else if(reg == 'Cerrado'){
     r <- 'CE_'
     ZOOM <- 10
+  } else if(reg == 'Pantanal') {
+    r <- 'PA_'
+    ZOOM <- 12
   } else {
     stop('invalid region name')
   }
@@ -303,8 +304,8 @@ plot.akde <- function(reg) {
                     |visibility:off")
   
   TITLE <- case_when(reg == 'Atlantic Forest'~ 'a)',
-                     reg == 'Pantanal' ~ 'b)',
-                     reg == 'Cerrado' ~ 'c)')
+                     reg == 'Cerrado' ~ 'b)',
+                     reg == 'Pantanal' ~ 'c)')
   
   ggmap(MAP, darken = c(0.3, "white")) +
     geom_polygon(aes(x = long, y = lat, fill = group), color = 'black',
@@ -315,8 +316,8 @@ plot.akde <- function(reg) {
           legend.position = 'none')
 }
 
-plot_grid(plot.akde('Atlantic Forest'), plot.akde('Pantanal'),
-          plot.akde('Cerrado'), ncol = 2) # used ncol = 1 for figure in the main text
+plot_grid(plot.akde('Atlantic Forest'), plot.akde('Cerrado'), plot.akde('Pantanal'),
+          ncol = 2) # used ncol = 1 for figure in the main text
 ```
 
 \newpage
@@ -331,12 +332,11 @@ ggplot(tap) +
   geom_point(aes(x = area.est, y = name, shape = average), col = 'black', size = 1.2) +
   geom_point(aes(x = area.est, y = name, shape = average), col = 'white', size = 0.7) +
   scale_shape_manual(element_blank(), values = c(19, 17)) +
-  scale_color_manual('Region', values = c(pal[1:3], 'black'),
-                     labels = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall')) +
+  scale_color_manual('Region', values = c(pal[1:3], 'black')) +
   scale_y_discrete(limits = rev,
-                   labels = c('Means', 'Cerrado', 'Pantanal', 'Atlantic forest'),
-                   breaks = c('Atlantic forest', 'CE_15_KURUKA',
-                              'PA_33_GABRIELA', 'AF_14_JAMESBOND')) +
+                   labels = c('Means', 'Pantanal', 'Cerrado', 'Atlantic forest'),
+                   breaks = c('Atlantic forest', 'PA_33_GABRIELA', 'CE_15_KURUKA',
+                              'AF_14_JAMESBOND')) +
   labs(x = bquote('Estimated 95% home range area'~(km^2)),
        y = NULL)
 ```
@@ -354,12 +354,11 @@ ggplot(tap) +
   geom_point(aes(x = tau.position.est, y = name, shape = average),
              col = 'white', size = 0.7) +
   scale_shape_manual(element_blank(), values = c(19, 17)) +
-  scale_color_manual('Region', values = c(pal[1:3], 'black'),
-                     labels = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall')) +
+  scale_color_manual('Region', values = c(pal[1:3], 'black')) +
   scale_y_discrete(limits = rev,
-                   labels = c('Means', 'Cerrado', 'Pantanal', 'Atlantic forest'),
-                   breaks = c('Atlantic forest', 'CE_15_KURUKA',
-                              'PA_33_GABRIELA', 'AF_14_JAMESBOND')) +
+                   labels = c('Means', 'Pantanal', 'Cerrado', 'Atlantic forest'),
+                   breaks = c('Atlantic forest', 'PA_33_GABRIELA', 'CE_15_KURUKA',
+                              'AF_14_JAMESBOND')) +
   labs(x = 'Range crossing time (days)', y = NULL)
 ```
 
@@ -375,8 +374,7 @@ ggplot(tap) +
   geom_point(aes(x = tau.velocity.est, y = name, shape = average),
              col = 'white', size = 0.7) +
   scale_shape_manual(element_blank(), values = c(19, 17)) +
-  scale_color_manual('Region', values = c(pal[1:3], 'black'),
-                     labels = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall')) +
+  scale_color_manual('Region', values = c(pal[1:3], 'black')) +
   scale_y_discrete(limits = rev,
                    labels = c('Means', 'Cerrado', 'Pantanal', 'Atlantic forest'),
                    breaks = c('Atlantic forest', 'CE_15_KURUKA',
@@ -394,8 +392,7 @@ ggplot(tap) +
   geom_point(aes(x = speed.est, y = name, shape = average), col = 'black', size = 1.2) +
   geom_point(aes(x = speed.est, y = name, shape = average), col = 'white', size = 0.7) +
   scale_shape_manual(element_blank(), values = c(19, 17)) +
-  scale_color_manual('Region', values = c(pal[1:3], 'black'),
-                     labels = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall')) +
+  scale_color_manual('Region', values = c(pal[1:3], 'black')) +
   scale_y_discrete(limits = rev,
                    labels = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Means'),
                    breaks = c('AF_17_ESPERTA', 'PA_33_GABRIELA', 'CE_15_KURUKA',
@@ -416,13 +413,11 @@ tapirs <- tapirs %>%
                        levels = c(unique(name), 'Atlantic forest', 'Pantanal', 'Cerrado',
                                   'Overall')),
          sex_r = paste(sex, region.lab, sep = '_') %>%
-           factor(levels = c('Female_Atlantic forest', 'Female_Pantanal',
-                             'Female_Cerrado', 'Male_Atlantic forest',
-                             'Male_Pantanal', 'Male_Cerrado')),
+           factor(levels = c('Female_Atlantic forest', 'Female_Cerrado','Female_Pantanal',
+                             'Male_Atlantic forest', 'Male_Cerrado', 'Male_Pantanal')),
          adult_r = paste(adult, region.lab, sep = '_') %>%
-           factor(levels = c('Adult_Atlantic forest', 'Adult_Pantanal',
-                             'Adult_Cerrado', 'Young_Atlantic forest',
-                             'Young_Pantanal', 'Young_Cerrado')))
+           factor(levels = c('Adult_Atlantic forest', 'Adult_Cerrado', 'Adult_Pantanal',
+                             'Young_Atlantic forest', 'Young_Cerrado', 'Young_Pantanal')))
 
 # means and CIs
 m_speed_sex <- gam(speed.est ~ sex + region.lab,
@@ -524,18 +519,17 @@ summary_plot <- function(Y, group = c('sex', 'adult')) {
     geom_point(aes(x, est), summarized, color = 'white') +
     
     # theme
-    scale_fill_manual('Region', values = pal, aesthetics = c('fill', 'color'),
-                      breaks = c('Atlantic forest', 'Pantanal', 'Cerrado')) +
+    scale_fill_manual('Region', values = pal, aesthetics = c('fill', 'color')) +
     theme(legend.position = 'none')
   
   # add appropriate labels depending on grouping
   if(group == 'sex') {
     p <- p +
-      scale_x_discrete(NULL, breaks = c('Female_Pantanal', 'Male_Pantanal'),
+      scale_x_discrete(NULL, breaks = c('Female_Cerrado', 'Male_Cerrado'),
                        labels = c('Female', 'Male'))
   } else {
     p <- p +
-      scale_x_discrete(NULL, breaks = c('Adult_Pantanal', 'Young_Pantanal'),
+      scale_x_discrete(NULL, breaks = c('Adult_Cerrado', 'Young_Cerrado'),
                        labels = c('Adult', 'Young'))
   }
   
@@ -737,6 +731,7 @@ m.tauv <- gam(tau.velocity.est ~ s(forest, k = 10) + s(water, k = 5),
               family = Gamma('log'),
               data = tapirs.lu,
               method = 'REML')
+summary(m.tauv)
 ```
 
 Create predictions for each model and plot them:
@@ -754,8 +749,7 @@ ggplot() +
   geom_ribbon(aes(dirt, ymin = lwr, ymax = upr), pred.lu.hr, alpha = 0.2) +
   geom_line(aes(dirt, est), pred.lu.hr) +
   geom_point(aes(dirt, area.est, color = region.lab), tapirs.lu, alpha = 0.9) +
-  scale_color_manual('Region', values = pal[1:3], 
-                     labels = c('Atlantic forest', 'Pantanal', 'Cerrado')) +
+  scale_color_manual('Region', values = pal) +
   labs(x = 'Proportion of exposed soil in the habitat',
        y = expression('Home Range Area'~(km^2))) +
   theme(legend.position = 'top',
@@ -785,7 +779,7 @@ ggplot() +
   scale_color_manual('Region', values = pal[1:3]) +
   labs(x = 'Proportion of forested habitat',
        y = 'Directional persistence (h)') +
-  theme(legend.position = 'none')
+  theme(legend.position = 'top')
 ```
 
 ### $\tau_v$ ~ s(forest) + s(water) without outlier
@@ -829,13 +823,13 @@ pred.tv.f <-
               mutate(est = exp(fit),
                      lwr = exp(fit - 1.96 * se.fit),
                      upr = exp(fit + 1.96 * se.fit),
-                     model = 'Without Atlantic forest or outlier'))
+                     model = 'Without AF or outlier'))
 
 ggplot() +
   geom_ribbon(aes(forest, ymin = lwr, ymax = upr, fill = model), pred.tv.f, alpha=0.2) +
   geom_line(aes(forest, est, color = model), pred.tv.f) +
   geom_errorbar(aes(x = forest, ymin = tau.velocity.low, ymax = tau.velocity.high,
-                    color = region.lab), alpha = 0.5, tapirs.lu)+
+                    color = region.lab), alpha = 0.5, tapirs.lu) +
   geom_point(aes(forest, tau.velocity.est, color = region.lab,
                  shape = tau.velocity.est > 1.5),
              filter(tapirs.lu, ! is.na(tau.velocity.est))) +
@@ -890,7 +884,7 @@ ggplot() +
   geom_raster(aes(x, y, fill = hfi), joanna_raster) + # ml-HFI raster
   geom_polygon(aes(x = long, y = lat, lwd = group, lty = group), # AKDE
                joanna_akde, color = 'white', fill = '#80808040', show.legend = FALSE) +
-  scale_fill_viridis_c('ml-HFI', option = 'B', limits = c(0, 1)) +
+  scale_fill_viridis_c('ml-HFI', limits = c(0, 1)) +
   scale_x_continuous('Longitude', expand = c(0, 0)) +
   scale_y_continuous('Latitude', expand = c(0, 0)) +
   scale_size_manual(breaks = unique(joanna_akde$group), values = c(.5, 1.25, .5)) +
@@ -1078,19 +1072,21 @@ get_core_area <- function(i) {
 
 ```{r create-tap-2, results = 'hide'}
 tapirs <- readRDS('../models/tapirs-final.rds') %>% # tapir data
+  arrange(name) %>%
   bind_cols(map_dfr(1:N, get_core_area) %>%
               transmute(core.area.low = low / 1e6,
                         core.area.est = est / 1e6,
                         core.area.high = high / 1e6)) %>%
   mutate(
     # translate name
-    region.lab = if_else(region.lab == 'Mata Atlantica', 'Atlantic forest', region.lab))
+    region.lab = if_else(region.lab == 'Mata Atlantica', 'Atlantic forest', region.lab)%>%
+      factor())
 
 tap <-
   tapirs %>%
   bind_rows(
-    bind_cols(name = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall'),
-              region.lab = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall'),
+    bind_cols(name = c('Atlantic forest', 'Cerrado', 'Pantanal', 'Overall'),
+              region.lab = c('Atlantic forest', 'Cerrado', 'Pantanal', 'Overall'),
               # core home range estimates
               bind_rows(
                 meta(tapirs$model[tapirs$region=='atlantica'], plot=F, level.UD=0.5)[1,],
@@ -1099,11 +1095,11 @@ tap <-
                 meta(tapirs$model, plot = FALSE, level.UD = 0.5)[1, ]) %>%
                 rename(core.area.low = low, core.area.est = est, core.area.high=high)))%>%
   mutate(name = factor(name, levels = c(unique(tapirs$name), 'Atlantic forest',
-                                        'Pantanal', 'Cerrado', 'Overall')),
+                                        'Cerrado', 'Pantanal', 'Overall')),
          region.lab = factor(region.lab,
-                             levels = c('Atlantic forest', 'Pantanal', 'Cerrado',
+                             levels = c('Atlantic forest', 'Cerrado', 'Pantanal',
                                         'Overall')),
-         average = if_else(name %in% c('Atlantic forest','Pantanal','Cerrado','Overall'),
+         average = if_else(name %in% c('Atlantic forest','Cerrado','Pantanal','Overall'),
                            'Group mean', 'Individual') %>%
            factor(levels = c('Individual', 'Group mean'))) %>%
   select(region.lab, name, core.area.low:core.area.high, average)
@@ -1156,16 +1152,16 @@ tapirs <- tapirs %>%
                function(i)
                  SpatialPolygonsDataFrame.UD(akde[[i]],
                                              proj4string = proj[[i]],
-                                             level.UD = 0.5) %>%
+                                             level.UD = 0.5) %>% # core home range
                  spTransform(CRS("+proj=longlat")) %>%
                  fortify()))
 
 atl.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('AF_', group))
-pan.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('PA_', group))
 cer.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('CE_', group))
+pan.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('PA_', group))
 
-plot_grid(plot.akde('Atlantic Forest'), plot.akde('Pantanal'),
-          plot.akde('Cerrado'), ncol = 2) # used ncol = 1 for figure in the main text
+plot_grid(plot.akde('Atlantic Forest'), plot.akde('Cerrado'),
+          plot.akde('Pantanal'), ncol = 2) # used ncol = 1 for figure in the main text
 ```
 
 \newpage
@@ -1180,8 +1176,7 @@ ggplot(tap) +
   geom_point(aes(x = core.area.est, y = name, shape = average), col = 'black', size=1.2) +
   geom_point(aes(x = core.area.est, y = name, shape = average), col = 'white', size=0.7) +
   scale_shape_manual(element_blank(), values = c(19, 17)) +
-  scale_color_manual('Region', values = c(pal[1:3], 'black'),
-                     labels = c('Atlantic forest', 'Pantanal', 'Cerrado', 'Overall')) +
+  scale_color_manual('Region', values = c(pal[1:3], 'black')) +
   scale_y_discrete(limits = rev,
                    labels = c('Means', 'Cerrado', 'Pantanal', 'Atlantic forest'),
                    breaks = c('Atlantic forest', 'CE_15_KURUKA',
@@ -1199,16 +1194,14 @@ tapirs <- tapirs %>%
   mutate(sex = if_else(sex == 'FEMALE', 'Female', 'Male'),
          adult = if_else(adult == 'Yes', 'Adult', 'Young'),
          name = factor(name,
-                       levels = c(unique(name), 'Atlantic forest', 'Pantanal', 'Cerrado',
+                       levels = c(unique(name), 'Atlantic forest', 'Cerrado', 'Pantanal',
                                   'Overall')),
          sex_r = paste(sex, region.lab, sep = '_') %>%
-           factor(levels = c('Female_Atlantic forest', 'Female_Pantanal',
-                             'Female_Cerrado', 'Male_Atlantic forest',
-                             'Male_Pantanal', 'Male_Cerrado')),
+           factor(levels = c('Female_Atlantic forest', 'Female_Cerrado','Female_Pantanal',
+                             'Male_Atlantic forest', 'Male_Cerrado', 'Male_Pantanal')),
          adult_r = paste(adult, region.lab, sep = '_') %>%
-           factor(levels = c('Adult_Atlantic forest', 'Adult_Pantanal',
-                             'Adult_Cerrado', 'Young_Atlantic forest',
-                             'Young_Pantanal', 'Young_Cerrado')))
+           factor(levels = c('Adult_Atlantic forest', 'Adult_Cerrado', 'Adult_Pantanal',
+                             'Young_Atlantic forest', 'Young_Cerrado', 'Young_Pantanal')))
 
 # removed analyses on speed
 
@@ -1234,7 +1227,7 @@ hr_a <- summary_plot(group = 'adult', Y = 'core.area.est')
 ```{r}
 plot_grid(get_legend(hr_s +
                        theme(legend.position = 'top')),
-          plot_grid(hr_s, hr_a, ncol = 2, label_y = 1.08,
+          plot_grid(hr_s, hr_a, ncol = 2,
                     labels = c('c)', 'd)')),
           ncol = 1, rel_heights = c(0.1, 1))
 ```
@@ -1315,7 +1308,7 @@ ggplot() +
   geom_line(aes(forest, est), pred.lu.hr) +
   geom_point(aes(forest, core.area.est, color = region.lab), tapirs.lu, alpha = 0.9) +
   scale_color_manual('Region', values = pal[1:3], 
-                     labels = c('Atlantic forest', 'Pantanal', 'Cerrado')) +
+                     labels = c('Atlantic forest', 'Cerrado', 'Pantanal')) +
   labs(x = 'Proportion of exposed soil in the habitat',
        y = expression('Home Range Area'~(km^2))) +
   theme(legend.position = 'top',
@@ -1362,7 +1355,7 @@ ggplot() +
   geom_raster(aes(x, y, fill = hfi), joanna_raster) + # ml-HFI raster
   geom_polygon(aes(x = long, y = lat, lwd = group, lty = group), # AKDE
                joanna_akde, color = 'white', fill = '#80808040', show.legend = FALSE) +
-  scale_fill_viridis_c('ml-HFI', option = 'B', limits = c(0, 1)) +
+  scale_fill_viridis_c('ml-HFI', limits = c(0, 1)) +
   scale_x_continuous('Longitude', expand = c(0, 0)) +
   scale_y_continuous('Latitude', expand = c(0, 0)) +
   scale_size_manual(breaks = unique(joanna_akde$group), # need 6 values because 2 areas
