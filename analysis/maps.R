@@ -51,7 +51,7 @@ ggplot() +
   geom_raster(aes(x, y, fill = hfi), hfi) +
   geom_sf(data = sa, size = 0.15, color = 'grey70', fill = 'transparent') +
   theme(legend.position = 'top') +
-  scale_fill_viridis_c('Human Footprint Index', option = 'B')
+  scale_fill_viridis_c('Human Footprint Index')
 
 # import raw movement data
 raw <-
@@ -108,7 +108,7 @@ inset <-
   theme(legend.position = 'top', panel.grid = element_blank(),
         panel.background = element_rect(fill = 'dodgerblue4'),
         legend.key.width = unit(0.5, 'in')) +
-  scale_fill_viridis_c('ml-HFI', option = 'B', limits = c(0, 1),
+  scale_fill_viridis_c('ml-HFI', limits = c(0, 1),
                        labels = c('0', '0.25', '0.50', '0.75', '1')) +
   labs(x = 'Longitude', y = 'Latitude')
 
@@ -167,12 +167,10 @@ ggsave('figures/data-map.png', plot = br.map, width = 6.86*1.5, height = 8*1.5,
        dpi = 600, bg = 'white')
 beepr::beep()
 
-
-
 # home range plots ####
 atl.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('AF_', group))
-pan.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('PA_', group))
 cer.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('CE_', group))
+pan.akdes <- bind_rows(tapirs$akde.df) %>% filter(grepl('PA_', group))
 
 plot.akde <- function(reg) {
   # use BOXes in `if` statement if using hfi raster
@@ -238,8 +236,8 @@ plot.akde <- function(reg) {
           legend.position = 'none')
 }
 
-hr.map <- plot_grid(plot.akde('Atlantic Forest'), plot.akde('Pantanal'),
-                    plot.akde('Cerrado'), ncol = 1)
+hr.map <- plot_grid(plot.akde('Atlantic Forest'), plot.akde('Cerrado'),
+                    plot.akde('Pantanal'), ncol = 1)
 ggsave('figures/hr-map.png', plot = hr.map, width = 3.23, height = 6, scale = 2,
        bg = 'white', dpi = 600)
 

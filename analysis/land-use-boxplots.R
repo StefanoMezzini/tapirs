@@ -25,18 +25,18 @@ tapirs <- readRDS('models/tapirs-land-use.rds') %>%
 find.areas <- function(r) {
   
   file.name <-
-    case_when(r == 'atlantica' ~ '1- ATLANTIC FOREST/MA_Habitat.tif',
+    case_when(r == 'atlantic' ~ '1- ATLANTIC FOREST/MA_Habitat.tif',
               r == 'pantanal' ~ '2- PANTANAL/PANTANAL_USO_SOLO_03_2017.tif',
               r == 'cerrado' ~ '3- CERRADO/CERRADO_USO_SOLO_09_2016.tif')
   
-  # K <- if_else(grepl('atlantica', r), 30^2, 10^2) / 1000^2
+  # K <- if_else(grepl('atlantic', r), 30^2, 10^2) / 1000^2
   
   tot <-
     raster(paste0('data/spatial-layers/', file.name)) %>%
     as_tibble() %>%
     filter(!is.na(cellvalue))
   
-  if(r == 'atlantica') {
+  if(r == 'atlantic') {
     tot <-
       mutate(tot,
              type = case_when(cellvalue == 2 ~ '?',
@@ -75,20 +75,19 @@ find.areas <- function(r) {
     summarize(area = n()) %>%
     mutate(area = area / sum(area),
            type = stringr::str_to_title(type),
-           Region = case_when(r == 'atlantica' ~ 'Mata Atlantica',
+           Region = case_when(r == 'atlantic' ~ 'Atlantic forest',
                               r == 'pantanal' ~ 'Pantanal',
                               r == 'cerrado' ~ 'Cerrado'))
 }
 
-rasters <- bind_rows(find.areas('atlantica'),
+rasters <- bind_rows(find.areas('atlantic'),
                      find.areas('pantanal'),
                      find.areas('cerrado'))
 
 # boxplots of entire habitat type
 p1 <-
   mutate(rasters,
-         Region = factor(Region,
-                         levels = c('Mata Atlantica', 'Pantanal', 'Cerrado')),
+         Region = factor(Region),
          type = case_when(type == 'Forest' ~ 'Forest',
                           type == 'Dirt' ~ 'Exposed soil',
                           type == 'Savannah' ~ 'Savannah',

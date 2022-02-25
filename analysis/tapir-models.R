@@ -132,7 +132,7 @@ if(FALSE) {
 # plot of times
 raw <-
   bind_rows(read.csv('data/1_ATLANTICFOREST_11.csv') %>%
-              transmute(region = 'Mata Atlantica',
+              transmute(region = 'Atlantic forest',
                         name = individual.local.identifier,
                         timestamp = timestamp),
             read.csv('data/2_PANTANAL_ERRORDATASET_FINAL.csv') %>%
@@ -144,8 +144,7 @@ raw <-
               transmute(region = 'Cerrado',
                         name = individual.local.identifier,
                         timestamp = timestamp)) %>%
-  mutate(region = factor(region,
-                         levels = c('Mata Atlantica', 'Pantanal', 'Cerrado')),
+  mutate(region = factor(region),
          name2 = lag(name),
          t = as.POSIXct(timestamp, format = '%Y-%m-%d %H:%M'),
          t2 = lag(t),

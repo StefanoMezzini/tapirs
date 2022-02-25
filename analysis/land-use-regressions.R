@@ -37,8 +37,8 @@ if(FALSE) { # re-crop rasters
   tapirs <-
     mutate(tapirs,
            region = factor(region), # need factors for GAMs
-           region.lab = factor(region.lab,
-                               levels = c('Mata Atlantica','Pantanal','Cerrado')),
+           region.lab = if_else(region.lab == 'Mata Atlantica', 'Atlantic forest',
+                                region.lab) %>% factor(),
            lu.raster =
              map(1:N,
                  function(i) {
@@ -232,7 +232,6 @@ summary(m.tauv.1)
 
 # initial plots
 draw(m.hr, residuals = TRUE)
-draw(m.speed, residuals = TRUE)
 plot_grid(draw(m.tauv, residuals = TRUE), draw(m.tauv.1, residuals = TRUE),
           ncol = 1)
 
@@ -251,7 +250,7 @@ p <-
   geom_ribbon(aes(dirt, ymin = lwr, ymax = upr), pred, alpha = 0.2) +
   geom_line(aes(dirt, est), pred) +
   geom_point(aes(dirt, area.est, color = region.lab), tapirs, alpha = 0.9) +
-  scale_color_manual('Region', values = pal[1:3],  labels = c('Atlantic forest', 'Pantanal', 'Cerrado')) +
+  scale_color_manual('Region', values = pal[1:3]) +
   labs(x = 'Proportion of exposed soil in the habitat',
        y = expression('Home Range Area'~(km^2))) +
   theme(legend.position = 'top',
@@ -327,8 +326,7 @@ p.dirt <-
   geom_segment(aes(x = dirt, xend = dirt, y = area.low, yend = area.high,
                    color = region.lab), tapirs, lwd = 0.5, alpha = 0.5) +
   geom_point(aes(dirt, area.est, color = region.lab), tapirs, alpha = 0.9) +
-  scale_color_manual('Region', values = pal[1:3],
-                     labels = c('Atlantic forest', 'Pantanal', 'Cerrado')) +
+  scale_color_manual('Region', values = pal[1:3]) +
   labs(x = 'Proportion of exposed soil in the habitat',
        y = expression('Home Range Area'~(km^2))) +
   theme(legend.position = 'none',

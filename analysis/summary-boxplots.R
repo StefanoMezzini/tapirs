@@ -14,21 +14,18 @@ pal <- c('#4477AA', '#ff8c00', '#66CCEE', '#009900',
 
 # import data
 tapirs <- readRDS('models/tapirs-final.rds') %>%
+  arrange(name) %>%
   mutate(sex = if_else(sex == 'FEMALE', 'Female', 'Male'),
          adult = if_else(adult == 'Yes', 'Adult', 'Young'),
          name = factor(name,
-                       levels = c(unique(name), 'Atlantic forest',
-                                  'Pantanal', 'Cerrado', 'Overall')),
-         region.lab = if_else(region.lab == 'Mata Atlantica', 'Atlantic forest',
-                              region.lab),
+                       levels = c(unique(name), 'Atlantic forest', 'Cerrado', 'Pantanal',
+                                  'Overall')),
          sex_r = paste(sex, region.lab, sep = '_') %>%
-           factor(levels = c('Female_Atlantic forest', 'Female_Pantanal',
-                             'Female_Cerrado', 'Male_Atlantic forest',
-                             'Male_Pantanal', 'Male_Cerrado')),
+           factor(levels = c('Female_Atlantic forest','Female_Cerrado','Female_Pantanal',
+                             'Male_Atlantic forest', 'Male_Cerrado', 'Male_Pantanal')),
          adult_r = paste(adult, region.lab, sep = '_') %>%
-           factor(levels = c('Adult_Atlantic forest', 'Adult_Pantanal',
-                             'Adult_Cerrado', 'Young_Atlantic forest',
-                             'Young_Pantanal', 'Young_Cerrado')))
+           factor(levels = c('Adult_Atlantic forest','Adult_Cerrado','Adult_Pantanal',
+                             'Young_Atlantic forest', 'Young_Cerrado', 'Young_Pantanal')))
 
 # means and CIs
 m_speed_sex <- gam(speed.est ~ sex + region.lab,
@@ -131,18 +128,17 @@ summary_plot <- function(Y, group = c('sex', 'adult')) {
     geom_point(aes(x, est), summarized, color = 'white') +
     
     # theme
-    scale_fill_manual('Region', values = pal, aesthetics = c('fill', 'color'),
-                      breaks = c('Atlantic forest', 'Pantanal', 'Cerrado')) +
+    scale_fill_manual('Region', values = pal, aesthetics = c('fill', 'color')) +
     theme(legend.position = 'none')
   
   # add appropriate labels depending on grouping
   if(group == 'sex') {
     p <- p +
-      scale_x_discrete(NULL, breaks = c('Female_Pantanal', 'Male_Pantanal'),
+      scale_x_discrete(NULL, breaks = c('Female_Cerrado', 'Male_Cerrado'),
                        labels = c('Female', 'Male'))
   } else {
     p <- p +
-      scale_x_discrete(NULL, breaks = c('Adult_Pantanal', 'Young_Pantanal'),
+      scale_x_discrete(NULL, breaks = c('Adult_Cerrado', 'Young_Cerrado'),
                        labels = c('Adult', 'Young'))
   }
   

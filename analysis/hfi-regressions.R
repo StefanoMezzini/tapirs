@@ -29,11 +29,6 @@ extract(hfi.raster, as.sf(tapirs$akde[[5]])) # [[1]]=lwr, [[2]]=est, [[3]]=upr
 
 tapirs <-
   mutate(tapirs,
-         region = factor(region), # need factors for GAMs
-         region.lab = if_else(region.lab == 'Mata Atlantica',
-                              'Atlantic forest',
-                              region.lab) %>%
-           factor(levels = c('Atlantic forest','Pantanal','Cerrado')),
          hfi.mean = map_dbl(1:N,
                             function(i)
                               extract(hfi.raster,
