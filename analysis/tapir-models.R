@@ -28,7 +28,7 @@ pantanal <- read.csv('data/cleaned/pantanal.csv') %>% # agriculture
   as.telemetry(timeformat = '%Y-%m-%d %H:%M:%S', mark.rm = TRUE)
 
 cerrado <- read.csv('data/cleaned/cerrado.csv') %>% # reference
-  as.telemetry(timeformat = '%Y-%m-%d %H:%M:%S', mark.rm = TRUE)
+  as.telemetry(timeformat = '%Y-%m-%d %H:%M', mark.rm = TRUE)
 
 # add User Equivalent Range Error (UERE)
 pantanal.calib <- read.csv('data/CALIBRATION_Pantanal.csv') %>% as.telemetry()
