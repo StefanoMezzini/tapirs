@@ -41,6 +41,3 @@ analysis/tapir-example.out
 
 # large HFI files
 data/hfi-layers/
-
-# spatial layers
-spatial-layers/

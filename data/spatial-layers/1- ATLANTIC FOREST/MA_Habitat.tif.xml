@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata xml:lang="pt"><Esri><CreaDate>20210722</CreaDate><CreaTime>20561200</CreaTime><ArcGISFormat>1.0</ArcGISFormat><SyncOnce>TRUE</SyncOnce><DataProperties><lineage><Process ToolSource="c:\program files (x86)\arcgis\desktop10.7\ArcToolbox\Toolboxes\Conversion Tools.tbx\PolygonToRaster" Date="20210722" Time="205612">PolygonToRaster MA_UTM DLEGNDMAPA Z:\SIG\Anta_MataAtlantica\InventarioFlorestal2010\MA_Habitat_2.tif CELL_CENTER NONE 30</Process></lineage></DataProperties></Esri></metadata>
